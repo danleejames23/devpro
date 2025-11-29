@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: freelance_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: freelance_website
+      POSTGRES_USER: freelance_user
+      POSTGRES_PASSWORD: freelance_password_2024
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - freelance_network
+
+  # Next.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: freelance_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://freelance_user:freelance_password_2024@postgres:5432/freelance_website
+      - NEXTAUTH_SECRET=your-secret-key-here-change-in-production
+      - NEXTAUTH_URL=http://localhost:3000
+    depends_on:
+      - postgres
+    networks:
+      - freelance_network
+    volumes:
+      - ./uploads:/app/uploads
+
+  # Redis for Session Storage (Optional)
+  redis:
+    image: redis:7-alpine
+    container_name: freelance_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - freelance_network
+
+volumes:
+  postgres_data:
+
+networks:
+  freelance_network:
+    driver: bridge

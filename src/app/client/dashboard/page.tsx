@@ -1,0 +1,3306 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import QuoteTypeModal from '@/components/quote-type-modal'
+import QuoteDetailsModal from '@/components/quote-details-modal'
+import ConfirmDialog from '@/components/confirm-dialog'
+import SuccessNotification from '@/components/success-notification'
+import NotificationDropdown from '@/components/notification-dropdown'
+import { Notification } from '@/lib/database'
+import { useAuth } from '@/contexts/auth-context'
+import ClientMessaging from '@/components/client-messaging'
+
+// Billing data interfaces
+interface PaymentMethod {
+  id: string
+  type: 'visa' | 'mastercard' | 'amex' | 'paypal'
+  last4: string
+  expiryMonth: number
+  expiryYear: number
+  isDefault: boolean
+  customerId: string
+}
+
+interface Invoice {
+  id: string
+  customerId: string
+  projectId?: string
+  projectName: string
+  amount: number
+  status: 'paid' | 'pending' | 'overdue' | 'cancelled'
+  issueDate: string
+  dueDate: string
+  paidDate?: string
+  items: InvoiceItem[]
+  // Deposit fields
+  depositRequired?: boolean
+  depositAmount?: number
+  depositPaid?: boolean
+  depositDueDate?: string
+  remainingAmount?: number
+}
+
+interface InvoiceItem {
+  description: string
+  quantity: number
+  unitPrice: number
+  total: number
+}
+
+interface BillingSettings {
+  customerId: string
+  emailInvoices: boolean
+  autoPayEnabled: boolean
+  billingAddress?: {
+    street: string
+    city: string
+    state: string
+    postalCode: string
+    country: string
+  }
+  taxId?: string
+}
+import { 
+  User, FileText, Clock, DollarSign, LogOut, Mail, Building, Calendar, CheckCircle, AlertCircle,
+  Eye, Settings, Bell, Download, MessageSquare, CreditCard, BarChart3, Plus, Edit, Lock, Save, X,
+  Phone, MapPin, Globe, Briefcase, TrendingUp, Activity, Star, Shield, Zap, Award, Upload, Search,
+  Filter, Video, FileImage, Paperclip, Send, Archive, Trash2, ExternalLink, Copy, RefreshCw,
+  PlayCircle, CheckSquare, AlertTriangle, Info, HelpCircle, BookOpen, Headphones, Package,
+  Monitor, Smartphone, Laptop, Server, Database, Code, Palette, Layers, Target, Rocket, Timer,
+  Users, Heart, ThumbsUp, MessageCircle, Share2, Flag, Bookmark, Tag, Folder, FolderOpen, Image,
+  FileVideo, FileAudio, FileSpreadsheet, FileCode, CloudUpload, CloudDownload,
+  Wifi, WifiOff, BatteryCharging, Volume2, VolumeX, Maximize, Minimize, RotateCcw, RotateCw,
+  ZoomIn, ZoomOut, Move, Crop, Scissors, PaintBucket, Brush, Eraser, Type, AlignLeft, AlignCenter,
+  AlignRight, Bold, Italic, Underline, List, ListOrdered, Quote, Link2, Unlink, Table, Grid,
+  Layout, Sidebar, PanelLeft, PanelRight, PanelTop, PanelBottom, Columns, Rows, Square, Circle,
+  Triangle, Hexagon, Hash, AtSign, Percent, Euro, Bitcoin, Wallet, Receipt, Calculator,
+  PieChart, LineChart, AreaChart, ScatterChart, TrendingDown, Gauge, Thermometer, Battery, Signal,
+  Antenna, Radio, Tv, Camera, Mic, MicOff, Speaker, Music, PlaySquare,
+  SkipBack, SkipForward, Rewind, FastForward, Repeat, Repeat1, Shuffle, Volume, Volume1, VolumeOff,
+  Play, Pause, Power, PowerOff, Sun, Moon, Cloud, CloudRain,
+  CloudSnow, CloudLightning, Umbrella, Wind, Droplets, EyeOff, Glasses, Lightbulb, Flashlight,
+  Home, Building2, Linkedin, Twitter, ArrowRight
+} from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
+
+// Resolve an appropriate invoice id for payment (prefer latest pending & deposit not paid)
+const resolveInvoiceIdHelper = (billingData: any): string | undefined => {
+  try {
+    const invoices = (billingData?.invoices as any[]) || []
+    const normalized = invoices.map((inv: any) => ({
+      id: inv.id,
+      status: inv.status,
+      depositPaid: inv?.depositPaid ?? inv?.deposit_paid ?? false,
+      issueDate: inv?.issueDate ?? inv?.issue_date ?? null,
+      createdAt: inv?.createdAt ?? inv?.created_at ?? null,
+    }))
+    const candidates = normalized.filter(i => i.status !== 'paid' && !i.depositPaid)
+    if (candidates.length === 0) return undefined
+    const sorted = candidates.sort((a, b) => new Date(a.createdAt || a.issueDate || 0).getTime() - new Date(b.createdAt || b.issueDate || 0).getTime())
+    return sorted[sorted.length - 1]?.id
+  } catch {
+    return undefined
+  }
+}
+
+interface CustomerAccount {
+  id: string
+  name: string
+  email: string
+  company?: string
+  password?: string
+  createdAt: string
+  updatedAt?: string
+  quotes?: string[]
+  phone?: string
+  address?: string
+  website?: string
+  jobTitle?: string
+  industry?: string
+  companySize?: string
+  timezone?: string
+  preferredContact?: string
+  linkedin?: string
+  twitter?: string
+  bio?: string
+  avatar?: string
+  country?: string
+  city?: string
+  postalCode?: string
+  vatNumber?: string
+  businessType?: string
+}
+
+interface QuoteData {
+  id: string
+  quote_id: string
+  name: string
+  email: string
+  company?: string
+  description: string
+  selectedFeatures: string[]
+  selectedPackage?: {
+    id: string
+    name: string
+    price: number
+    features: string[]
+    deliveryTime: string
+    category: string
+    complexity: string
+  }
+  complexity: 'basic' | 'standard' | 'premium' | string
+  estimatedCost: number
+  estimatedTimeline: number | string
+  status: 'pending' | 'under_review' | 'quoted' | 'approved' | 'accepted' | 'in_progress' | 'completed' | 'cancelled'
+  createdAt: string
+  updatedAt: string
+}
+
+export default function ClientDashboard() {
+  const router = useRouter()
+  const { customer: authCustomer, isLoading, logout } = useAuth()
+  const [customer, setCustomer] = useState<CustomerAccount | null>(null)
+  const [quotes, setQuotes] = useState<QuoteData[]>([])
+  const [projects, setProjects] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [isPaymentLoading, setIsPaymentLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState('overview')
+  const [clientMessages, setClientMessages] = useState<any[]>([])
+  const [messageText, setMessageText] = useState('')
+  const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false)
+  const [isQuoteDetailsOpen, setIsQuoteDetailsOpen] = useState(false)
+  const [selectedQuote, setSelectedQuote] = useState<any>(null)
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
+  const [pendingCancelQuoteId, setPendingCancelQuoteId] = useState<string | null>(null)
+  const [confirmCancelFunction, setConfirmCancelFunction] = useState<(() => Promise<void>) | null>(null)
+  const [isSuccessNotificationOpen, setIsSuccessNotificationOpen] = useState(false)
+  const [successNotification, setSuccessNotification] = useState({
+    title: '',
+    message: ''
+  })
+  
+  // Notification system state
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [profileData, setProfileData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    company: '',
+    phone: '',
+    address: '',
+    website: '',
+    jobTitle: '',
+    industry: '',
+    companySize: '',
+    timezone: '',
+    preferredContact: 'email',
+    linkedin: '',
+    twitter: '',
+    bio: '',
+    avatar: '',
+    country: '',
+    city: '',
+    postalCode: '',
+    vatNumber: '',
+    businessType: 'individual'
+  })
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  const [billingData, setBillingData] = useState<{
+    stats: { totalSpent: number; outstanding: number; nextPaymentAmount: number; nextPaymentDate: string | null }
+    paymentMethods: PaymentMethod[]
+    invoices: Invoice[]
+    settings: BillingSettings | null
+  }>({
+    stats: { totalSpent: 0, outstanding: 0, nextPaymentAmount: 0, nextPaymentDate: null },
+    paymentMethods: [],
+    invoices: [],
+    settings: null
+  })
+  const [showGithubNotSetModal, setShowGithubNotSetModal] = useState(false)
+  const [githubNotSetProject, setGithubNotSetProject] = useState<any | null>(null)
+  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
+
+  const loadClientMessages = async () => {
+    if (!authCustomer) return
+    try {
+      const res = await fetch(`/api/messages?customerId=${authCustomer.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.success) {
+          setClientMessages(data.messages || [])
+        } else {
+          console.warn('Failed to load client messages:', data.error)
+        }
+      } else {
+        console.warn('Failed to load client messages:', res.status)
+      }
+    } catch (error) {
+      console.error('Error loading client messages:', error)
+    }
+  }
+
+  const sendClientMessage = async () => {
+    if (!authCustomer || !messageText.trim()) return
+    try {
+      const token = localStorage.getItem('auth_token')
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          message: messageText.trim()
+        })
+      })
+      const data = await res.json().catch(() => ({ success: false }))
+      if (res.ok && data.success) {
+        setMessageText('')
+        await loadClientMessages()
+      } else {
+        console.warn('Send client message failed:', data)
+      }
+    } catch (e) {
+      console.error('Error sending client message:', e)
+    }
+  }
+
+  useEffect(() => {
+    if (authCustomer && activeTab === 'messages') {
+      loadClientMessages()
+    }
+  }, [authCustomer, activeTab])
+
+  useEffect(() => {
+    if (activeTab !== 'messages' || !authCustomer) return
+    const interval = setInterval(() => {
+      loadClientMessages()
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [activeTab, authCustomer])
+
+  // Authentication check
+  useEffect(() => {
+    if (!isLoading && !authCustomer) {
+      router.push('/client')
+      return
+    }
+    
+    if (authCustomer) {
+      setCustomer({
+        id: authCustomer.id,
+        name: authCustomer.name,
+        email: authCustomer.email,
+        company: authCustomer.company || '',
+        phone: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        quotes: []
+      })
+    }
+  }, [authCustomer, isLoading, router])
+
+  useEffect(() => {
+    if (!authCustomer) return
+
+    const loadData = async () => {
+      try {
+        // Load real quotes data
+        const quotesResponse = await fetch(`/api/quotes?customerId=${authCustomer.id}`)
+        if (quotesResponse.ok) {
+          const quotesData = await quotesResponse.json()
+          console.log('📊 Loaded quotes data:', quotesData)
+          console.log('🔍 First quote structure:', quotesData.quotes?.[0])
+          
+          // Debug package data specifically
+          if (quotesData.quotes && quotesData.quotes.length > 0) {
+            quotesData.quotes.forEach((quote: any, idx: number) => {
+              console.log(`📦 Quote ${idx + 1} package data:`, {
+                id: quote.id,
+                hasSelectedPackage: !!quote.selectedPackage,
+                selectedPackage: quote.selectedPackage,
+                packageName: quote.selectedPackage?.name || 'No package',
+                hasSelectedFeatures: !!quote.selectedFeatures,
+                selectedFeatures: quote.selectedFeatures,
+                featuresCount: quote.selectedFeatures?.length || 0,
+                complexity: quote.complexity
+              })
+              
+              // Log the full quote object for the first quote
+              if (idx === 0) {
+                console.log('🔍 Full first quote object:', JSON.stringify(quote, null, 2))
+              }
+            })
+          }
+          
+          setQuotes(quotesData.quotes || [])
+
+          // Load client projects (mirror admin projects for accurate status/progress)
+          try {
+            const projectsResponse = await fetch(`/api/client/projects?customer_id=${authCustomer.id}`)
+            if (projectsResponse.ok) {
+              const projectsData = await projectsResponse.json()
+              console.log('📊 Loaded client projects:', projectsData)
+              if (projectsData.success) {
+                setProjects(projectsData.projects || [])
+              }
+            } else {
+              console.warn('Failed to load client projects:', projectsResponse.status)
+            }
+          } catch (projErr) {
+            console.error('Error loading client projects:', projErr)
+          }
+        } else {
+          console.error('Failed to load quotes:', quotesResponse.status)
+          setQuotes([])
+
+          // Still try to load client projects so Projects tab can render
+          try {
+            const projectsResponse = await fetch(`/api/client/projects?customer_id=${authCustomer.id}`)
+            if (projectsResponse.ok) {
+              const projectsData = await projectsResponse.json()
+              console.log('📊 Loaded client projects (quotes failed):', projectsData)
+              if (projectsData.success) {
+                setProjects(projectsData.projects || [])
+              }
+            } else {
+              console.warn('Failed to load client projects (quotes failed):', projectsResponse.status)
+            }
+          } catch (projErr) {
+            console.error('Error loading client projects (quotes failed):', projErr)
+          }
+        }
+        
+        // Load notifications
+        await fetchNotifications()
+        
+        // Load billing data
+        const billingResponse = await fetch(`/api/billing?customerId=${authCustomer.id}`)
+        if (billingResponse.ok) {
+          const billingResult = await billingResponse.json()
+          if (billingResult.success) {
+            setBillingData(billingResult.data)
+          }
+        }
+
+        // Load updated customer profile data from database
+        try {
+          const customerResponse = await fetch(`/api/customers/${authCustomer.id}`)
+          if (customerResponse.ok) {
+            const customerResult = await customerResponse.json()
+            if (customerResult.success) {
+              console.log('📊 Loaded updated customer data:', customerResult.customer)
+              setCustomer(customerResult.customer)
+              // Update localStorage with latest data
+              localStorage.setItem('customer', JSON.stringify(customerResult.customer))
+            }
+          }
+        } catch (customerErr) {
+          console.error('Error loading customer data:', customerErr)
+        }
+        
+        // Files tab removed: project files available via per-project modal
+        
+      } catch (error) {
+        console.error('Error loading customer data:', error)
+        // Don't redirect on data loading errors, just log them
+      }
+      
+      setLoading(false)
+    }
+
+    loadData()
+  }, [authCustomer])
+
+  const handleLogout = () => {
+    logout()
+    router.push('/client')
+  }
+
+  const handleProfileSave = async () => {
+    try {
+      if (!customer && !authCustomer) {
+        console.error('No customer data available')
+        alert('Error: No customer data available')
+        return
+      }
+      
+      console.log('Saving profile:', profileData)
+      
+      // Prepare update data for database
+      const updateData = {
+        first_name: profileData.firstName,
+        last_name: profileData.lastName,
+        email: profileData.email,
+        company: profileData.company,
+        phone: profileData.phone,
+        address: profileData.address,
+        website: profileData.website,
+        job_title: profileData.jobTitle,
+        industry: profileData.industry,
+        company_size: profileData.companySize,
+        timezone: profileData.timezone,
+        preferred_contact: profileData.preferredContact,
+        linkedin: profileData.linkedin,
+        twitter: profileData.twitter,
+        bio: profileData.bio,
+        avatar: profileData.avatar,
+        country: profileData.country,
+        city: profileData.city,
+        postal_code: profileData.postalCode,
+        vat_number: profileData.vatNumber,
+        business_type: profileData.businessType
+      }
+      
+      // Update customer in database via API
+      if (!customer?.id) {
+        console.error('No customer ID available')
+        return
+      }
+      
+      const response = await fetch(`/api/customers/${customer.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData)
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        console.log('Profile updated successfully:', result)
+        
+        // Update local customer data with response
+        const updatedCustomer = result.customer
+        setCustomer(updatedCustomer)
+        
+        // Update localStorage
+        localStorage.setItem('customer', JSON.stringify(updatedCustomer))
+        
+        // Show success notification
+        showSuccessNotification(
+          'Profile Updated Successfully!',
+          'Your profile information has been saved.'
+        )
+        
+        setIsEditingProfile(false)
+      } else {
+        const error = await response.json()
+        console.error('Failed to update profile:', error)
+        alert(`Failed to update profile: ${error.error || 'Unknown error'}`)
+      }
+      
+    } catch (error) {
+      console.error('Error saving profile:', error)
+      alert('Error saving profile. Please try again.')
+    }
+  }
+
+  const handlePasswordChange = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      alert('New passwords do not match!')
+      return
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      alert('Password must be at least 6 characters long!')
+      return
+    }
+
+    try {
+      // In a real app, this would call an API to change password
+      console.log('Changing password for:', customer?.email)
+      
+      setIsChangingPassword(false)
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      alert('Password changed successfully!')
+    } catch (error) {
+      console.error('Error changing password:', error)
+      alert('Failed to change password. Please try again.')
+    }
+  }
+
+  // Billing management functions
+  const [showAddPaymentDialog, setShowAddPaymentDialog] = useState(false)
+  const [showBillingSettingsDialog, setShowBillingSettingsDialog] = useState(false)
+  const [paymentFormData, setPaymentFormData] = useState({
+    cardType: 'visa',
+    cardNumber: '',
+    expiryMonth: '',
+    expiryYear: '',
+    isDefault: false
+  })
+  const [billingSettingsData, setBillingSettingsData] = useState({
+    emailInvoices: true,
+    autoPayEnabled: false,
+    billingAddress: {
+      street: '',
+      city: '',
+      state: '',
+      postalCode: '',
+      country: ''
+    },
+    taxId: ''
+  })
+  const [isAddingPayment, setIsAddingPayment] = useState(false)
+  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false)
+
+  const handleAddPaymentMethod = async () => {
+    if (!paymentFormData.cardNumber || !paymentFormData.expiryMonth || !paymentFormData.expiryYear || !customer) {
+      alert('Please fill in all payment method fields')
+      return
+    }
+    
+    setIsAddingPayment(true)
+    try {
+      const response = await fetch('/api/billing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'payment-method',
+          customerId: customer.id,
+          ...paymentFormData
+        })
+      })
+      
+      const result = await response.json()
+      if (result.success) {
+        // Reload billing data
+        const billingResponse = await fetch(`/api/billing?customerId=${customer.id}`)
+        if (billingResponse.ok) {
+          const billingResult = await billingResponse.json()
+          if (billingResult.success) {
+            setBillingData(billingResult.data)
+          }
+        }
+        
+        setShowAddPaymentDialog(false)
+        setPaymentFormData({
+          cardType: 'visa',
+          cardNumber: '',
+          expiryMonth: '',
+          expiryYear: '',
+          isDefault: false
+        })
+        alert('Payment method added successfully!')
+      } else {
+        alert('Failed to add payment method. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error adding payment method:', error)
+      alert('Failed to add payment method. Please try again.')
+    }
+    setIsAddingPayment(false)
+  }
+
+  const handleUpdateBillingSettings = async () => {
+    if (!customer) return
+    
+    setIsUpdatingSettings(true)
+    try {
+      const response = await fetch('/api/billing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'billing-settings',
+          customerId: customer.id,
+          ...billingSettingsData
+        })
+      })
+      
+      const result = await response.json()
+      if (result.success) {
+        // Reload billing data
+        const billingResponse = await fetch(`/api/billing?customerId=${customer.id}`)
+        if (billingResponse.ok) {
+          const billingResult = await billingResponse.json()
+          if (billingResult.success) {
+            setBillingData(billingResult.data)
+          }
+        }
+        
+        setShowBillingSettingsDialog(false)
+        alert('Billing settings updated successfully!')
+      } else {
+        alert('Failed to update billing settings. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error updating billing settings:', error)
+      alert('Failed to update billing settings. Please try again.')
+    }
+    setIsUpdatingSettings(false)
+  }
+
+  const handleDeletePaymentMethod = async (paymentMethodId: string) => {
+    if (!confirm('Are you sure you want to remove this payment method?')) return
+    if (!customer) return
+    
+    try {
+      const response = await fetch(`/api/billing/payment-method/${paymentMethodId}`, {
+        method: 'DELETE'
+      })
+      
+      const result = await response.json()
+      if (result.success) {
+        // Reload billing data
+        const billingResponse = await fetch(`/api/billing?customerId=${customer.id}`)
+        if (billingResponse.ok) {
+          const billingResult = await billingResponse.json()
+          if (billingResult.success) {
+            setBillingData(billingResult.data)
+          }
+        }
+        
+        alert('Payment method removed successfully!')
+      } else {
+        alert('Failed to remove payment method. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error removing payment method:', error)
+      alert('Failed to remove payment method. Please try again.')
+    }
+  }
+
+  const handleGitHubConnect = async () => {
+    if (!customer) return
+    
+    try {
+      // Redirect to GitHub OAuth
+      window.location.href = `/api/github/auth?customerId=${customer.id}`
+    } catch (error) {
+      console.error('Error connecting to GitHub:', error)
+      alert('Failed to connect to GitHub. Please try again.')
+    }
+  }
+
+  const handleFileDownload = async (fileId: string, fileName: string) => {
+    try {
+      const response = await fetch(`/api/files/download?fileId=${fileId}`)
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = fileName
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      } else {
+        alert('Failed to download file.')
+      }
+    } catch (error) {
+      console.error('Error downloading file:', error)
+      alert('Failed to download file. Please try again.')
+    }
+  }
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  const handleViewQuoteDetails = (quote: any) => {
+    setSelectedQuote(quote)
+    setIsQuoteDetailsOpen(true)
+  }
+
+  const handleCancelQuote = (quoteId: string) => {
+    console.log('Setting up cancel for quote:', quoteId)
+    
+    if (!quoteId || quoteId === 'undefined' || quoteId === 'null') {
+      console.error('Cannot cancel quote: Invalid quote ID:', quoteId)
+      alert('Error: Cannot cancel quote - invalid quote ID')
+      return
+    }
+    
+    // Check if this is a temporary ID and warn user
+    if (quoteId.startsWith('TEMP-')) {
+      console.log('Warning: Using temporary quote ID for cancellation')
+    }
+    
+    const confirmCancel = async () => {
+      console.log('confirmCancel called for quote:', quoteId)
+      
+      try {
+        const response = await fetch(`/api/quotes/${quoteId}/cancel`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+        
+        console.log('Cancel response status:', response.status)
+        const result = await response.json()
+        console.log('Cancel response data:', result)
+        
+        if (result.success) {
+          // Show success message
+          showSuccessNotification(
+            'Quote Cancelled Successfully!',
+            'Your quote has been cancelled and will no longer be processed.'
+          )
+          
+          // Close the quote details modal if it's open
+          setIsQuoteDetailsOpen(false)
+          
+          // Refresh quotes data
+          if (customer) {
+            console.log('Refreshing quotes for customer:', customer.id)
+            const quotesResponse = await fetch(`/api/quotes?customerId=${customer.id}`)
+            if (quotesResponse.ok) {
+              const quotesData = await quotesResponse.json()
+              console.log('Refreshed quotes data:', quotesData)
+              setQuotes(quotesData.quotes || [])
+            } else {
+              console.error('Failed to refresh quotes:', quotesResponse.status)
+            }
+          }
+        } else {
+          console.error('Failed to cancel quote:', result.error)
+          alert(`Failed to cancel quote: ${result.error || 'Unknown error'}`)
+        }
+      } catch (error) {
+        console.error('Error canceling quote:', error)
+        alert('Error canceling quote. Please try again.')
+      }
+    }
+    
+    // Store the confirmation function and open dialog
+    console.log('About to store confirmation function')
+    setPendingCancelQuoteId(quoteId)
+    setConfirmCancelFunction(() => confirmCancel)
+    console.log('Stored confirmation function, opening dialog')
+    setIsConfirmDialogOpen(true)
+  }
+
+  const confirmCancelQuote = async () => {
+    console.log('confirmCancelQuote called, confirmCancelFunction is:', confirmCancelFunction)
+    if (!confirmCancelFunction) {
+      console.error('No confirmation function available')
+      return
+    }
+    
+    await confirmCancelFunction()
+  }
+
+  // Helper function to show success notifications
+  const showSuccessNotification = (title: string, message: string) => {
+    setSuccessNotification({ title, message })
+    setIsSuccessNotificationOpen(true)
+  }
+
+  // Notification system functions
+  const fetchNotifications = async () => {
+    if (!customer) return
+    
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) return
+      
+      const response = await fetch('/api/notifications', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setNotifications(data.notifications || [])
+        
+        // Also get unread count
+        const unreadResponse = await fetch('/api/notifications?unreadOnly=true', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        
+        if (unreadResponse.ok) {
+          const unreadData = await unreadResponse.json()
+          setUnreadCount(unreadData.unreadCount || 0)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error)
+    }
+  }
+
+  const markNotificationAsRead = async (notificationId: string) => {
+    if (!customer) return
+    
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) return
+      
+      const response = await fetch(`/api/notifications/${notificationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ action: 'markRead' })
+      })
+      
+      if (response.ok) {
+        // Update local state
+        setNotifications(prev => 
+          prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
+        )
+        setUnreadCount(prev => Math.max(0, prev - 1))
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error)
+    }
+  }
+
+  const markAllNotificationsAsRead = async () => {
+    if (!customer) return
+    
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) return
+      
+      const response = await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ action: 'markAllRead' })
+      })
+      
+      if (response.ok) {
+        // Update local state
+        setNotifications(prev => 
+          prev.map(n => ({ ...n, is_read: true }))
+        )
+        setUnreadCount(0)
+      }
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error)
+    }
+  }
+
+  const deleteNotification = async (notificationId: string) => {
+    if (!customer) return
+    
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) return
+      
+      const response = await fetch(`/api/notifications/${notificationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        // Update local state
+        const deletedNotification = notifications.find(n => n.id === notificationId)
+        setNotifications(prev => prev.filter(n => n.id !== notificationId))
+        
+        if (deletedNotification && !deletedNotification.is_read) {
+          setUnreadCount(prev => Math.max(0, prev - 1))
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error)
+    }
+  }
+
+  const fetchBillingData = async () => {
+    if (!customer) return
+    
+    try {
+      const billingResponse = await fetch(`/api/billing?customerId=${customer.id}`)
+      if (billingResponse.ok) {
+        const billingResult = await billingResponse.json()
+        if (billingResult.success) {
+          setBillingData(billingResult.data)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching billing data:', error)
+    }
+  }
+
+  const handlePayNow = async (invoiceId: string) => {
+    console.log('🔄 Pay Now clicked for invoice:', invoiceId)
+    console.log('👤 Customer ID:', customer?.id)
+    
+    try {
+      setIsPaymentLoading(true)
+      console.log('⏳ Setting loading state...')
+      
+      const requestBody = {
+        invoice_id: invoiceId,
+        action: 'pay_now',
+        customer_id: customer?.id
+      }
+      console.log('📤 Sending request:', requestBody)
+      
+      const response = await fetch('/api/billing', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      })
+      
+      console.log('📥 Response status:', response.status)
+      const data = await response.json()
+      console.log('📥 Response data:', data)
+      
+      if (data.success) {
+        console.log('✅ Payment successful, refreshing data...')
+        // Refresh billing data to show updated payment status
+        await fetchBillingData()
+        
+        setSuccessNotification({
+          title: 'Payment Processed',
+          message: 'Your payment has been processed successfully!'
+        })
+        setIsSuccessNotificationOpen(true)
+      } else {
+        console.error('❌ Payment failed:', data.error)
+        throw new Error(data.error || 'Payment failed')
+      }
+    } catch (error: any) {
+      console.error('💥 Payment error:', error)
+      setSuccessNotification({
+        title: 'Payment Failed',
+        message: `There was an error processing your payment: ${error?.message || 'Please try again.'}`
+      })
+      setIsSuccessNotificationOpen(true)
+    } finally {
+      console.log('🏁 Clearing loading state...')
+      setIsPaymentLoading(false)
+    }
+  }
+
+  const getProjectStats = () => {
+    const totalQuotes = quotes.length
+    const pendingQuotes = quotes.filter(q => q.status === 'pending').length
+    const approvedQuotes = quotes.filter(q => ['approved', 'accepted'].includes(q.status)).length
+    const totalProjects = projects.length
+    const activeProjects = projects.filter((p: any) => p.status === 'in_progress').length
+    const completedProjects = projects.filter((p: any) => p.status === 'completed').length
+    // Calculate total investment including paid deposits and final payments
+    const totalValue = quotes.filter(q => ['accepted', 'in_progress', 'completed'].includes(q.status)).reduce((sum, q) => sum + q.estimatedCost, 0)
+    
+    // Invoice stats (normalize fields to camelCase locally)
+    const invoices = (billingData.invoices as any[]).map((inv: any) => ({
+      ...inv,
+      dueDate: inv?.dueDate ?? inv?.due_date ?? null,
+      depositPaid: inv?.depositPaid ?? inv?.deposit_paid ?? false,
+      depositAmount: inv?.depositAmount ?? inv?.deposit_amount ?? (inv?.amount ? inv.amount * 0.2 : 0),
+      remainingAmount: inv?.remainingAmount ?? inv?.remaining_amount ?? (inv?.amount ? inv.amount * 0.8 : 0),
+    }))
+
+    // Calculate actual paid amount (deposits + final payments)
+    const totalPaidAmount = invoices.reduce((sum, inv) => {
+      let paidAmount = 0
+      if (inv.status === 'paid') {
+        // Fully paid invoice
+        paidAmount = inv.amount || 0
+      } else if (inv.depositPaid) {
+        // Only deposit paid
+        paidAmount = inv.depositAmount || 0
+      }
+      return sum + paidAmount
+    }, 0)
+
+    // Total Amount Due across unpaid invoices (deposit due or remaining due)
+    const totalAmountDue = invoices.reduce((sum, inv) => {
+      if (inv.status === 'paid') return sum
+      const due = !inv.depositPaid ? (inv.depositAmount || 0) : (inv.remainingAmount || 0)
+      return sum + (due || 0)
+    }, 0)
+
+    const overdueInvoices = invoices.filter(inv => inv.status === 'overdue').length
+    const pendingInvoices = invoices.filter(inv => inv.status === 'pending').length
+    const nextDueInvoice = invoices
+      .filter(inv => inv.status === 'pending')
+      .sort((a: any, b: any) => new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime())[0]
+
+    // Calculate actual amount due based on normalized fields
+    const nextDueAmount = nextDueInvoice
+      ? (!nextDueInvoice.depositPaid ? nextDueInvoice.depositAmount : nextDueInvoice.remainingAmount)
+      : 0
+
+    // Find the project status for the next due invoice
+    let relatedProjectCompleted = false
+    if (nextDueInvoice) {
+      // Try to find the related project by matching invoice ID/quote ID to project quote_id
+      const relatedProject = projects.find((p: any) => 
+        String(p.quote_id) === String(nextDueInvoice.quoteId || nextDueInvoice.quote_id || nextDueInvoice.id)
+      )
+      
+      // If no project found, check if the related quote is marked as completed
+      if (!relatedProject) {
+        const relatedQuote = quotes.find(q => 
+          String(q.id || (q as any).quote_id) === String(nextDueInvoice.quoteId || nextDueInvoice.quote_id || nextDueInvoice.id)
+        )
+        relatedProjectCompleted = relatedQuote?.status === 'completed'
+      } else {
+        relatedProjectCompleted = relatedProject.status === 'completed'
+      }
+    }
+    
+    return { 
+      totalQuotes, 
+      pendingQuotes, 
+      approvedQuotes,
+      totalProjects, 
+      activeProjects, 
+      completedProjects, 
+      totalValue,
+      totalPaidAmount,
+      totalAmountDue,
+      overdueInvoices,
+      pendingInvoices,
+      nextDueInvoice,
+      nextDueAmount,
+      relatedProjectCompleted
+    }
+  }
+
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: BarChart3 },
+    { id: 'quotes', label: 'Quotes', icon: FileText },
+    { id: 'invoices', label: 'Invoices', icon: CreditCard },
+    { id: 'projects', label: 'Projects', icon: Briefcase },
+    { id: 'billing', label: 'Billing', icon: CreditCard },
+    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'settings', label: 'Settings', icon: Settings },
+  ]
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-500/10 text-yellow-300 border border-yellow-400/30'
+      case 'approved': return 'bg-emerald-500/10 text-emerald-300 border border-emerald-400/30'
+      case 'under_review': return 'bg-blue-500/10 text-blue-300 border border-blue-400/30'
+      case 'quoted': return 'bg-purple-500/10 text-purple-300 border border-purple-400/30'
+      case 'accepted': return 'bg-green-500/10 text-green-300 border border-green-400/30'
+      case 'in_progress': return 'bg-indigo-500/10 text-indigo-300 border border-indigo-400/30'
+      case 'completed': return 'bg-teal-500/10 text-teal-300 border border-teal-400/30'
+      case 'cancelled': return 'bg-red-500/10 text-red-300 border border-red-400/30'
+      default: return 'bg-gray-500/10 text-gray-300 border border-gray-400/30'
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending': return <Clock className="w-4 h-4" />
+      case 'under_review': return <Eye className="w-4 h-4" />
+      case 'quoted': return <FileText className="w-4 h-4" />
+      case 'accepted': return <CheckCircle className="w-4 h-4" />
+      case 'in_progress': return <Package className="w-4 h-4" />
+      case 'completed': return <CheckCircle className="w-4 h-4" />
+      case 'cancelled': return <X className="w-4 h-4" />
+      default: return <AlertTriangle className="w-4 h-4" />
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="pt-16 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your dashboard...</p>
+        </div>
+      </main>
+    )
+  }
+
+  if (!customer) {
+    return null
+  }
+
+  const stats = getProjectStats()
+
+  return (
+    <main className="pt-16 min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h1 className="text-3xl font-bold text-foreground">
+              Welcome back, {customer.name}!
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Manage your projects and track progress
+            </p>
+          </motion.div>
+          
+          <div className="flex items-center space-x-4">
+            {/* Notification Dropdown */}
+            <NotificationDropdown
+              notifications={notifications}
+              unreadCount={unreadCount}
+              onMarkAsRead={markNotificationAsRead}
+              onMarkAllAsRead={markAllNotificationsAsRead}
+              onDelete={deleteNotification}
+              onRefresh={fetchNotifications}
+            />
+            
+            <Button onClick={handleLogout} variant="outline">
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="mb-8">
+          <div className="border-b border-border overflow-x-auto">
+            <nav className="flex space-x-4 lg:space-x-8 min-w-max pb-px">
+              {tabs.map((tab) => {
+                const Icon = tab.icon
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                      activeTab === tab.id
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 mr-2" />
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
+                {/* Professional Header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-semibold text-foreground">Dashboard Overview</h2>
+                    <p className="text-muted-foreground mt-1">Monitor your projects and account status</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground">Last updated</p>
+                    <p className="text-sm font-medium">{new Date().toLocaleDateString('en-GB', { 
+                      day: 'numeric', 
+                      month: 'short', 
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}</p>
+                  </div>
+                </div>
+
+                {/* Key Metrics */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Card className="border-l-4 border-l-blue-500">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Active Projects</p>
+                          <p className="text-2xl font-semibold">{stats.activeProjects}</p>
+                          {stats.completedProjects > 0 && (
+                            <p className="text-xs text-muted-foreground">{stats.completedProjects} completed</p>
+                          )}
+                        </div>
+                        <div className="h-8 w-8 bg-blue-50 rounded-full flex items-center justify-center">
+                          <Briefcase className="h-4 w-4 text-blue-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-l-4 border-l-emerald-500">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Amount Due</p>
+                          <p className="text-2xl font-semibold">{formatCurrency(stats.totalAmountDue)}</p>
+                          <p className="text-xs text-muted-foreground">Unpaid invoices</p>
+                        </div>
+                        <div className="h-8 w-8 bg-emerald-50 rounded-full flex items-center justify-center">
+                          <TrendingUp className="h-4 w-4 text-emerald-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-l-4 border-l-emerald-500">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Total Investment</p>
+                          <p className="text-2xl font-semibold">{formatCurrency(stats.totalPaidAmount)}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {stats.totalPaidAmount > 0 ? 'Deposits & payments made' : 'No payments yet'}
+                          </p>
+                        </div>
+                        <div className="h-8 w-8 bg-emerald-50 rounded-full flex items-center justify-center">
+                          <DollarSign className="h-4 w-4 text-emerald-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className={`border-l-4 ${stats.pendingInvoices > 0 ? 'border-l-amber-500' : 'border-l-gray-300'}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Invoices</p>
+                          <p className="text-2xl font-semibold">{stats.pendingInvoices}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {stats.pendingInvoices > 0 ? 'Require payment' : 'All settled'}
+                          </p>
+                        </div>
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                          stats.pendingInvoices > 0 ? 'bg-amber-50' : 'bg-gray-50'
+                        }`}>
+                          <CreditCard className={`h-4 w-4 ${
+                            stats.pendingInvoices > 0 ? 'text-amber-600' : 'text-gray-400'
+                          }`} />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Payment Notifications */}
+                {(stats.overdueInvoices > 0 || (stats.nextDueInvoice && (!stats.nextDueInvoice.depositPaid || stats.relatedProjectCompleted))) && (
+                  <Card className="border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50">
+                    <CardContent className="p-6">
+                      <div className="flex items-start space-x-4">
+                        <div className="h-10 w-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <AlertTriangle className="h-5 w-5 text-orange-600" />
+                        </div>
+                        <div className="flex-1 space-y-3">
+                          <div>
+                            <h3 className="text-lg font-semibold text-orange-900">Payment Action Required</h3>
+                            <p className="text-sm text-orange-700 mt-1">Please review and complete your outstanding payments</p>
+                          </div>
+                          
+                          {stats.overdueInvoices > 0 && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                              <div className="flex items-center space-x-2">
+                                <div className="h-2 w-2 bg-red-500 rounded-full"></div>
+                                <p className="text-sm font-medium text-red-800">
+                                  {stats.overdueInvoices} Overdue Invoice{stats.overdueInvoices > 1 ? 's' : ''}
+                                </p>
+                              </div>
+                              <p className="text-xs text-red-700 mt-1">Immediate attention required</p>
+                            </div>
+                          )}
+                          
+                          {stats.nextDueInvoice && (!stats.nextDueInvoice.depositPaid || stats.relatedProjectCompleted) && (
+                            <div className="bg-white border border-orange-200 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center space-x-2">
+                                  <div className="h-2 w-2 bg-orange-500 rounded-full"></div>
+                                  <p className="text-sm font-medium text-orange-900">
+                                    {!stats.nextDueInvoice.depositPaid ? 'Project Deposit Required' : 
+                                     stats.relatedProjectCompleted ? 'Final Payment Due' : 'Next Payment Due'}
+                                  </p>
+                                </div>
+                                <span className="text-lg font-bold text-orange-900">
+                                  {formatCurrency(stats.nextDueAmount)}
+                                </span>
+                              </div>
+                              <p className="text-xs text-orange-700">
+                                {!stats.nextDueInvoice.depositPaid ? 
+                                  'Required to begin work on your project' : 
+                                  stats.relatedProjectCompleted ? 
+                                    'Final payment for completed project' : 
+                                    'Remaining balance for ongoing project'
+                                }
+                              </p>
+                            </div>
+                          )}
+                          
+                          <div className="flex space-x-3 pt-2">
+                            <Button 
+                              size="sm" 
+                              className="bg-orange-600 hover:bg-orange-700 text-white"
+                              onClick={() => setActiveTab('invoices')}
+                            >
+                              <CreditCard className="h-4 w-4 mr-2" />
+                              View & Pay Invoices
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                              onClick={() => setActiveTab('billing')}
+                            >
+                              Payment Methods
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Main Content Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Recent Activity */}
+                  <Card className="lg:col-span-2">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-medium flex items-center">
+                        <Activity className="w-4 h-4 mr-2 text-muted-foreground" />
+                        Recent Activity
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      {quotes.length === 0 ? (
+                        <div className="text-center py-8">
+                          <div className="h-12 w-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
+                            <Activity className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                          <p className="text-sm text-muted-foreground">No recent activity</p>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="mt-3"
+                            onClick={() => setIsQuoteModalOpen(true)}
+                          >
+                            Request Your First Quote
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {quotes.slice(0, 4).map((quote, index) => (
+                            <div key={`activity-${quote.id || index}`} className="flex items-center space-x-3 py-2 border-b border-border/50 last:border-0">
+                              <div className="h-2 w-2 bg-primary rounded-full"></div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">Quote {quote.quote_id || quote.id}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(quote.createdAt).toLocaleDateString('en-GB', { 
+                                    day: 'numeric', 
+                                    month: 'short' 
+                                  })}
+                                </p>
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {(quote.status || '').split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}
+                              </Badge>
+                            </div>
+                          ))}
+                          {quotes.length > 4 && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full mt-2"
+                              onClick={() => setActiveTab('quotes')}
+                            >
+                              View All Quotes ({quotes.length})
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Quick Actions */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-medium flex items-center">
+                        <Zap className="w-4 h-4 mr-2 text-muted-foreground" />
+                        Quick Actions
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="space-y-2">
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start h-auto p-3 text-left"
+                          onClick={() => setIsQuoteModalOpen(true)}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                              <Plus className="h-4 w-4 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">New Quote</p>
+                              <p className="text-xs text-muted-foreground">Request project estimate</p>
+                            </div>
+                          </div>
+                        </Button>
+                        
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start h-auto p-3 text-left"
+                          onClick={() => setActiveTab('projects')}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="h-8 w-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                              <Briefcase className="h-4 w-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">View Projects</p>
+                              <p className="text-xs text-muted-foreground">Track progress</p>
+                            </div>
+                          </div>
+                        </Button>
+                        
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start h-auto p-3 text-left"
+                          onClick={() => setActiveTab('invoices')}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="h-8 w-8 bg-green-50 rounded-lg flex items-center justify-center">
+                              <CreditCard className="h-4 w-4 text-green-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">Manage Billing</p>
+                              <p className="text-xs text-muted-foreground">Payments & invoices</p>
+                            </div>
+                          </div>
+                        </Button>
+                        
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start h-auto p-3 text-left"
+                          onClick={() => setActiveTab('profile')}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="h-8 w-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                              <User className="h-4 w-4 text-purple-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">Account Settings</p>
+                              <p className="text-xs text-muted-foreground">Update profile</p>
+                            </div>
+                          </div>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Project Status Summary */}
+                {stats.activeProjects > 0 && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-medium flex items-center">
+                        <Briefcase className="w-4 h-4 mr-2 text-muted-foreground" />
+                        Project Status
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="text-center p-4 bg-blue-50 rounded-lg">
+                          <p className="text-2xl font-semibold text-blue-600">{stats.activeProjects}</p>
+                          <p className="text-sm text-blue-700">In Progress</p>
+                        </div>
+                        <div className="text-center p-4 bg-green-50 rounded-lg">
+                          <p className="text-2xl font-semibold text-green-600">{stats.completedProjects}</p>
+                          <p className="text-sm text-green-700">Completed</p>
+                        </div>
+                        <div className="text-center p-4 bg-gray-50 rounded-lg">
+                          <p className="text-2xl font-semibold text-gray-600">{stats.totalQuotes}</p>
+                          <p className="text-sm text-gray-700">Total Quotes</p>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        className="w-full mt-4"
+                        onClick={() => setActiveTab('projects')}
+                      >
+                        View All Projects
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
+
+            {activeTab === 'profile' && (
+              <div className="max-w-4xl mx-auto space-y-6">
+                {/* Profile Header */}
+                <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-8 border border-primary/20">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-6">
+                      <div className="h-20 w-20 bg-primary/20 rounded-full flex items-center justify-center">
+                        <User className="h-10 w-10 text-primary" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold text-foreground">{customer?.name || 'Your Profile'}</h2>
+                        <p className="text-muted-foreground mt-1">{customer?.email}</p>
+                        <div className="flex items-center mt-2 space-x-4">
+                          <span className="text-sm text-muted-foreground">
+                            {customer?.company && `${customer.company} • `}
+                            Member since {new Date().getFullYear()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      className="btn-gradient"
+                      onClick={() => {
+                        if (isEditingProfile) {
+                          handleProfileSave()
+                        } else {
+                          const nameParts = (customer?.name || authCustomer?.name || '').split(' ')
+                          setProfileData({
+                            firstName: nameParts[0] || '',
+                            lastName: nameParts.slice(1).join(' ') || '',
+                            email: customer?.email || authCustomer?.email || '',
+                            company: customer?.company || authCustomer?.company || '',
+                            phone: customer?.phone || '',
+                            address: customer?.address || '',
+                            website: customer?.website || '',
+                            jobTitle: customer?.jobTitle || '',
+                            industry: customer?.industry || '',
+                            companySize: customer?.companySize || '',
+                            timezone: customer?.timezone || '',
+                            preferredContact: customer?.preferredContact || 'email',
+                            linkedin: customer?.linkedin || '',
+                            twitter: customer?.twitter || '',
+                            bio: customer?.bio || '',
+                            avatar: customer?.avatar || '',
+                            country: customer?.country || '',
+                            city: customer?.city || '',
+                            postalCode: customer?.postalCode || '',
+                            vatNumber: customer.vatNumber || '',
+                            businessType: customer.businessType || 'individual'
+                          })
+                          setIsEditingProfile(true)
+                        }
+                      }}
+                    >
+                      {isEditingProfile ? (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Save Changes
+                        </>
+                      ) : (
+                        <>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit Profile
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Profile Content */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <Card className="lg:col-span-2">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-lg font-medium">Profile Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                    {isEditingProfile ? (
+                      <div className="grid gap-6">
+                        {/* Basic Information */}
+                        <div>
+                          <h4 className="text-lg font-semibold mb-4 flex items-center">
+                            <User className="w-5 h-5 mr-2 text-primary" />
+                            Basic Information
+                          </h4>
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-2">First Name *</label>
+                              <Input
+                                value={profileData.firstName}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
+                                placeholder="Your first name"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Last Name *</label>
+                              <Input
+                                value={profileData.lastName}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
+                                placeholder="Your last name"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Email *</label>
+                              <Input
+                                value={profileData.email}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
+                                placeholder="your@email.com"
+                                type="email"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Phone</label>
+                              <Input
+                                value={profileData.phone}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+                                placeholder="+44 123 456 7890"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Preferred Contact</label>
+                              <select
+                                value={profileData.preferredContact}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, preferredContact: e.target.value }))}
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                              >
+                                <option value="email">Email</option>
+                                <option value="phone">Phone</option>
+                                <option value="both">Both</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Business Information */}
+                        <div>
+                          <h4 className="text-lg font-semibold mb-4 flex items-center">
+                            <Building className="w-5 h-5 mr-2 text-primary" />
+                            Business Information
+                          </h4>
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Business Type</label>
+                              <select
+                                value={profileData.businessType}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, businessType: e.target.value }))}
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                              >
+                                <option value="individual">Individual</option>
+                                <option value="small_business">Small Business</option>
+                                <option value="medium_business">Medium Business</option>
+                                <option value="enterprise">Enterprise</option>
+                                <option value="startup">Startup</option>
+                                <option value="non_profit">Non-Profit</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Company Name</label>
+                              <Input
+                                value={profileData.company}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, company: e.target.value }))}
+                                placeholder="Your company name"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Job Title</label>
+                              <Input
+                                value={profileData.jobTitle}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, jobTitle: e.target.value }))}
+                                placeholder="CEO, CTO, Marketing Manager, etc."
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Industry</label>
+                              <Input
+                                value={profileData.industry}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, industry: e.target.value }))}
+                                placeholder="Technology, Healthcare, Finance, etc."
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Company Size</label>
+                              <select
+                                value={profileData.companySize}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, companySize: e.target.value }))}
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                              >
+                                <option value="">Select size</option>
+                                <option value="1">Just me</option>
+                                <option value="2-10">2-10 employees</option>
+                                <option value="11-50">11-50 employees</option>
+                                <option value="51-200">51-200 employees</option>
+                                <option value="201-500">201-500 employees</option>
+                                <option value="500+">500+ employees</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">VAT Number</label>
+                              <Input
+                                value={profileData.vatNumber}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, vatNumber: e.target.value }))}
+                                placeholder="GB123456789 (if applicable)"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Location Information */}
+                        <div>
+                          <h4 className="text-lg font-semibold mb-4 flex items-center">
+                            <MapPin className="w-5 h-5 mr-2 text-primary" />
+                            Location & Address
+                          </h4>
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Country</label>
+                              <Input
+                                value={profileData.country}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, country: e.target.value }))}
+                                placeholder="United Kingdom"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">City</label>
+                              <Input
+                                value={profileData.city}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, city: e.target.value }))}
+                                placeholder="London"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Postal Code</label>
+                              <Input
+                                value={profileData.postalCode}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, postalCode: e.target.value }))}
+                                placeholder="SW1A 1AA"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Timezone</label>
+                              <select
+                                value={profileData.timezone}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, timezone: e.target.value }))}
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                              >
+                                <option value="">Select timezone</option>
+                                <option value="GMT">GMT (London)</option>
+                                <option value="EST">EST (New York)</option>
+                                <option value="PST">PST (Los Angeles)</option>
+                                <option value="CET">CET (Paris)</option>
+                                <option value="JST">JST (Tokyo)</option>
+                                <option value="AEST">AEST (Sydney)</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className="mt-4">
+                            <label className="block text-sm font-medium mb-2">Full Address</label>
+                            <Textarea
+                              value={profileData.address}
+                              onChange={(e) => setProfileData(prev => ({ ...prev, address: e.target.value }))}
+                              placeholder="Your complete business address"
+                              rows={3}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Online Presence */}
+                        <div>
+                          <h4 className="text-lg font-semibold mb-4 flex items-center">
+                            <Globe className="w-5 h-5 mr-2 text-primary" />
+                            Online Presence
+                          </h4>
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Website</label>
+                              <Input
+                                value={profileData.website}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, website: e.target.value }))}
+                                placeholder="https://yourwebsite.com"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">LinkedIn</label>
+                              <Input
+                                value={profileData.linkedin}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, linkedin: e.target.value }))}
+                                placeholder="https://linkedin.com/in/yourprofile"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Twitter</label>
+                              <Input
+                                value={profileData.twitter}
+                                onChange={(e) => setProfileData(prev => ({ ...prev, twitter: e.target.value }))}
+                                placeholder="@yourusername"
+                              />
+                            </div>
+                          </div>
+                          <div className="mt-4">
+                            <label className="block text-sm font-medium mb-2">Bio / About</label>
+                            <Textarea
+                              value={profileData.bio}
+                              onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
+                              placeholder="Tell us about yourself and your business..."
+                              rows={4}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex space-x-3">
+                          <Button onClick={handleProfileSave} className="btn-gradient">
+                            <Save className="w-4 h-4 mr-2" />
+                            Save Changes
+                          </Button>
+                          <Button variant="outline" onClick={() => setIsEditingProfile(false)}>
+                            <X className="w-4 h-4 mr-2" />
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {/* Basic Information */}
+                        <div>
+                          <h4 className="text-lg font-semibold mb-4 flex items-center">
+                            <User className="w-5 h-5 mr-2 text-primary" />
+                            Basic Information
+                          </h4>
+                          <div className="grid md:grid-cols-2 gap-6">
+                            <div className="flex items-center space-x-3">
+                              <User className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">First Name</p>
+                                <p className="font-medium">{customer.name?.split(' ')[0] || ''}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3">
+                              <User className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">Last Name</p>
+                                <p className="font-medium">{customer.name?.split(' ').slice(1).join(' ') || ''}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3">
+                              <Mail className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">Email</p>
+                                <p className="font-medium">{customer.email}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3">
+                              <Phone className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">Phone</p>
+                                <p className="font-medium">{customer.phone || 'Not provided'}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3">
+                              <MessageSquare className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">Preferred Contact</p>
+                                <p className="font-medium capitalize">{customer.preferredContact || 'Email'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Business Information */}
+                        <div className="border-t pt-6">
+                          <h4 className="text-lg font-semibold mb-4 flex items-center">
+                            <Building className="w-5 h-5 mr-2 text-primary" />
+                            Business Information
+                          </h4>
+                          <div className="grid md:grid-cols-2 gap-6">
+                            <div className="flex items-center space-x-3">
+                              <Building2 className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">Business Type</p>
+                                <p className="font-medium capitalize">{customer.businessType?.replace('_', ' ') || 'Individual'}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3">
+                              <Building className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">Company Name</p>
+                                <p className="font-medium">{customer.company || 'Not provided'}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3">
+                              <Briefcase className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">Job Title</p>
+                                <p className="font-medium">{customer.jobTitle || 'Not provided'}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3">
+                              <Building2 className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">Industry</p>
+                                <p className="font-medium">{customer.industry || 'Not provided'}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3">
+                              <Users className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">Company Size</p>
+                                <p className="font-medium">{customer.companySize || 'Not provided'}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3">
+                              <FileText className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">VAT Number</p>
+                                <p className="font-medium">{customer.vatNumber || 'Not provided'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Location & Address */}
+                        <div className="border-t pt-6">
+                          <h4 className="text-lg font-semibold mb-4 flex items-center">
+                            <MapPin className="w-5 h-5 mr-2 text-primary" />
+                            Location & Address
+                          </h4>
+                          <div className="grid md:grid-cols-2 gap-6">
+                            <div className="flex items-center space-x-3">
+                              <Globe className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">Country</p>
+                                <p className="font-medium">{customer.country || 'Not provided'}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3">
+                              <MapPin className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">City</p>
+                                <p className="font-medium">{customer.city || 'Not provided'}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3">
+                              <Mail className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">Postal Code</p>
+                                <p className="font-medium">{customer.postalCode || 'Not provided'}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3">
+                              <Clock className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">Timezone</p>
+                                <p className="font-medium">{customer.timezone || 'GMT (London)'}</p>
+                              </div>
+                            </div>
+                            
+                            {customer.address && (
+                              <div className="flex items-start space-x-3 md:col-span-2">
+                                <Home className="w-5 h-5 text-muted-foreground mt-1" />
+                                <div className="flex-1">
+                                  <p className="text-sm text-muted-foreground">Full Address</p>
+                                  <p className="font-medium">{customer.address}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Online Presence */}
+                        <div className="border-t pt-6">
+                          <h4 className="text-lg font-semibold mb-4 flex items-center">
+                            <Globe className="w-5 h-5 mr-2 text-primary" />
+                            Online Presence
+                          </h4>
+                          <div className="space-y-4">
+                            <div className="grid md:grid-cols-2 gap-6">
+                              {customer.website && (
+                                <div className="flex items-center space-x-3">
+                                  <Globe className="w-5 h-5 text-muted-foreground" />
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">Website</p>
+                                    <p className="font-medium">
+                                      <a href={customer.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                        {customer.website}
+                                      </a>
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {customer.linkedin && (
+                                <div className="flex items-center space-x-3">
+                                  <Linkedin className="w-5 h-5 text-muted-foreground" />
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">LinkedIn</p>
+                                    <p className="font-medium">
+                                      <a href={customer.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                        {customer.linkedin}
+                                      </a>
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {customer.twitter && (
+                                <div className="flex items-center space-x-3">
+                                  <Twitter className="w-5 h-5 text-muted-foreground" />
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">Twitter</p>
+                                    <p className="font-medium">
+                                      <a href={customer.twitter} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                        {customer.twitter}
+                                      </a>
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {customer.bio && (
+                              <div className="flex items-start space-x-3">
+                                <FileText className="w-5 h-5 text-muted-foreground mt-1" />
+                                <div className="flex-1">
+                                  <p className="text-sm text-muted-foreground">Bio / About</p>
+                                  <p className="font-medium whitespace-pre-wrap">{customer.bio}</p>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Show placeholders for empty online presence fields */}
+                            {!customer.website && !customer.linkedin && !customer.twitter && !customer.bio && (
+                              <div className="text-center py-8 text-muted-foreground">
+                                <Globe className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                <p>No online presence information provided</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Account Information */}
+                        <div className="border-t pt-6">
+                          <h4 className="text-lg font-semibold mb-4 flex items-center">
+                            <Calendar className="w-5 h-5 mr-2 text-primary" />
+                            Account Information
+                          </h4>
+                          <div className="grid md:grid-cols-2 gap-6">
+                            <div className="flex items-center space-x-3">
+                              <Calendar className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">Member Since</p>
+                                <p className="font-medium">{new Date(customer.createdAt).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Password Change Section */}
+                <Card className="card-hover">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Lock className="w-5 h-5 mr-2 text-primary" />
+                      Security Settings
+                    </CardTitle>
+                    <CardDescription>
+                      Keep your account secure by updating your password regularly
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {!isChangingPassword ? (
+                      <Button
+                        onClick={() => setIsChangingPassword(true)}
+                        className="btn-gradient"
+                      >
+                        <Lock className="w-4 h-4 mr-2" />
+                        Change Password
+                      </Button>
+                    ) : (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Current Password</label>
+                          <Input
+                            type="password"
+                            value={passwordData.currentPassword}
+                            onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                            placeholder="Enter current password"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium mb-2">New Password</label>
+                          <Input
+                            type="password"
+                            value={passwordData.newPassword}
+                            onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                            placeholder="Enter new password"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Confirm New Password</label>
+                          <Input
+                            type="password"
+                            value={passwordData.confirmPassword}
+                            onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                            placeholder="Confirm new password"
+                          />
+                        </div>
+                        
+                        <div className="flex space-x-3">
+                          <Button onClick={handlePasswordChange} className="btn-gradient">
+                            <Save className="w-4 h-4 mr-2" />
+                            Update Password
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setIsChangingPassword(false)
+                              setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+                            }}
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                </div>
+              </div>
+            )}
+
+            {/* Quotes Tab */}
+            {activeTab === 'quotes' && (
+              <div className="space-y-6">
+                {/* Request New Quote CTA - Compact Version */}
+                <Card className="card-hover gradient-primary text-white">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Zap className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold mb-1">Need a New Quote?</h3>
+                          <p className="text-white/80 text-sm">Choose from packages or request a custom solution</p>
+                        </div>
+                      </div>
+                      <Button 
+                        size="lg"
+                        onClick={() => setIsQuoteModalOpen(true)}
+                        className="bg-slate-800 text-white hover:bg-slate-900 border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3 font-bold whitespace-nowrap"
+                      >
+                        <Zap className="w-5 h-5 mr-2 text-white" />
+                        Request Quote
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="card-hover">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <FileText className="w-5 h-5 mr-2 text-primary" />
+                      Your Quotes
+                    </CardTitle>
+                    <CardDescription>
+                      Manage all your quotes across stages
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {quotes.length === 0 ? (
+                      <div className="text-center py-12">
+                        <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No Quotes Yet</h3>
+                        <p className="text-muted-foreground mb-6">
+                          Start by requesting your first quote
+                        </p>
+                        <Button className="btn-gradient" onClick={() => setIsQuoteModalOpen(true)}>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Request New Quote
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {quotes
+                          .slice()
+                          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                          .map((quote, index) => (
+                          <div
+                            key={`quote-${quote.id || index}`}
+                            className="p-6 glass-card border border-neon-purple/20 rounded-lg hover:border-cyber-mint/50 transition-colors"
+                          >
+                            <div className="flex items-center justify-between mb-4">
+                              <div>
+                                <h4 className="font-semibold text-lg text-silver-glow">Quote ID: {quote.id}</h4>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-2xl font-bold text-cyber-mint">
+                                  {formatCurrency(quote.estimatedCost)}
+                                </div>
+                                <div className="text-sm text-silver-glow/70">
+                                  Quoted Price • {quote.estimatedTimeline}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Package and Features Information */}
+                            {(quote.selectedPackage || (quote.selectedFeatures && quote.selectedFeatures.length > 0)) && (
+                              <div className="mb-4 p-4 bg-space-gray/20 rounded-lg border border-neon-purple/10">
+                                {quote.selectedPackage && (
+                                  <div className="mb-3">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <h5 className="font-semibold text-cyber-mint flex items-center">
+                                        <Package className="w-4 h-4 mr-2" />
+                                        {quote.selectedPackage.name}
+                                      </h5>
+                                      <span className="text-sm text-silver-glow/70">
+                                        {quote.selectedPackage.category} • {quote.selectedPackage.deliveryTime}
+                                      </span>
+                                    </div>
+                                    {quote.selectedPackage.complexity && (
+                                      <div className="text-xs text-neon-purple mb-2">
+                                        Complexity: {quote.selectedPackage.complexity}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                {/* Features */}
+                                {((quote.selectedPackage?.features && quote.selectedPackage.features.length > 0) || 
+                                  (quote.selectedFeatures && quote.selectedFeatures.length > 0)) && (
+                                  <div>
+                                    <h6 className="text-sm font-medium text-silver-glow mb-2">Included Features:</h6>
+                                    <div className="flex flex-wrap gap-2">
+                                      {(quote.selectedPackage?.features || quote.selectedFeatures || []).slice(0, 8).map((feature: any, idx: number) => (
+                                        <span
+                                          key={idx}
+                                          className="px-2 py-1 bg-cosmic-blue/20 text-cosmic-blue text-xs rounded-md border border-cosmic-blue/30"
+                                        >
+                                          {typeof feature === 'string' ? feature : feature?.name || 'Feature'}
+                                        </span>
+                                      ))}
+                                      {(quote.selectedPackage?.features || quote.selectedFeatures || []).length > 8 && (
+                                        <span className="px-2 py-1 bg-silver-glow/20 text-silver-glow text-xs rounded-md">
+                                          +{(quote.selectedPackage?.features || quote.selectedFeatures || []).length - 8} more
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            <div className="flex items-center justify-end">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleViewQuoteDetails(quote)}
+                                className="border-neon-purple/30 text-silver-glow hover:bg-white/5"
+                              >
+                                View Details
+                              </Button>
+                              </div>
+                            </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                
+              </div>
+            )}
+
+            {/* Invoices Tab */}
+            {activeTab === 'invoices' && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <CreditCard className="w-5 h-5 mr-2 text-primary" />
+                      Your Invoices
+                    </CardTitle>
+                    <CardDescription>
+                      View and manage your payable invoices
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {quotes.filter(q => ['quoted', 'accepted', 'approved'].includes(q.status)).length === 0 ? (
+                      <div className="text-center py-12">
+                        <CreditCard className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No Invoices Yet</h3>
+                        <p className="text-muted-foreground mb-6">
+                          Your approved quotes will appear here as payable invoices
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Once your quote is approved by admin, it will become a payable invoice
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {quotes.filter(q => ['quoted', 'accepted', 'approved'].includes(q.status)).map((quote, index) => (
+                          <div
+                            key={`invoice-${quote.id || index}`}
+                            className="p-6 border border-border rounded-lg hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/20 hover:bg-primary/5 hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+                          >
+                            <div className="flex items-center justify-between mb-4">
+                              <div>
+                                <h3 className="font-semibold text-lg">{quote.id}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  Created {new Date(quote.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-2xl font-bold text-primary">
+                                  {formatCurrency(quote.estimatedCost)}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {quote.status === 'quoted' ? 'Ready to Pay' : 'Invoice'}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Package Information */}
+                            {quote.selectedPackage && (
+                              <div className="bg-gradient-to-r from-cyber-mint/10 to-cosmic-blue/10 border border-cyber-mint/20 rounded-lg p-4 mb-4">
+                                <div className="flex items-center mb-2">
+                                  <Package className="w-4 h-4 text-cyber-mint mr-2" />
+                                  <h4 className="font-medium text-cyber-mint">Package Details</h4>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                  <div>
+                                    <p className="font-medium text-silver-glow">{quote.selectedPackage.name}</p>
+                                    <p className="text-xs text-silver-glow/70">{quote.selectedPackage.category} • {quote.selectedPackage.deliveryTime}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-silver-glow/70">Complexity: {quote.selectedPackage.complexity}</p>
+                                  </div>
+                                </div>
+                                {quote.selectedPackage.features && quote.selectedPackage.features.length > 0 && (
+                                  <div className="mt-3">
+                                    <p className="text-xs font-medium text-silver-glow mb-2">Included Features:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {quote.selectedPackage.features.slice(0, 6).map((feature: any, idx: number) => (
+                                        <span
+                                          key={idx}
+                                          className="px-2 py-1 bg-cosmic-blue/20 text-cosmic-blue text-xs rounded border border-cosmic-blue/30"
+                                        >
+                                          {typeof feature === 'string' ? feature : feature?.name || 'Feature'}
+                                        </span>
+                                      ))}
+                                      {quote.selectedPackage.features.length > 6 && (
+                                        <span className="px-2 py-1 bg-silver-glow/20 text-silver-glow text-xs rounded">
+                                          +{quote.selectedPackage.features.length - 6} more
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            
+                            {/* Payment Structure (restyled) */}
+                            <div className="bg-gradient-to-r from-cyber-mint/10 to-cosmic-blue/10 border border-cyber-mint/20 rounded-lg p-4 mb-4">
+                              <div className="flex items-center mb-2">
+                                <Info className="w-4 h-4 text-cyber-mint mr-2" />
+                                <h4 className="font-medium text-cyber-mint">Payment Structure</h4>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <p className="text-green-200 font-medium">20% Deposit Required</p>
+                                    {(() => {
+                                      // Find corresponding invoice for this quote via quoteId or id
+                                      const correspondingInvoice = billingData?.invoices?.find((inv: any) =>
+                                        String(inv.quoteId || inv.quote_id) === String(quote.id || quote.quote_id) ||
+                                        String(inv.id) === String(quote.id || quote.quote_id)
+                                      )
+                                      const isDepositPaid = correspondingInvoice?.depositPaid || false
+                                      
+                                      if (isDepositPaid) {
+                                        return (
+                                          <div className="px-3 py-1 bg-green-500/20 text-green-200 border border-green-400/30 rounded text-xs font-semibold">
+                                            ✓ Paid
+                                          </div>
+                                        )
+                                      } else {
+                                        return (
+                                          <Button 
+                                            size="sm" 
+                                            className="btn-gradient px-3 py-1 text-xs"
+                                            onClick={() => {
+                                              console.log('💳 Deposit Pay Now clicked from Invoices tab:', quote)
+                                              const invId = correspondingInvoice?.id || (((billingData?.invoices as any[]) || [])
+                                                .filter((inv: any) => (inv?.status ?? 'pending') !== 'paid' && !(inv?.depositPaid ?? false))
+                                                .sort((a: any, b: any) => new Date(a?.issueDate || a?.dueDate || 0).getTime() - new Date(b?.issueDate || b?.dueDate || 0).getTime())
+                                                .map((inv: any) => inv?.id)
+                                                .pop())
+                                              if (invId) {
+                                                handlePayNow(invId)
+                                              } else {
+                                                console.error('No corresponding invoice found for payment')
+                                                setSuccessNotification({
+                                                  title: 'No Invoice Found',
+                                                  message: 'We could not find an invoice for this quote. Please contact support.'
+                                                })
+                                                setIsSuccessNotificationOpen(true)
+                                              }
+                                            }}
+                                            disabled={isPaymentLoading}
+                                          >
+                                            {isPaymentLoading ? 'Processing...' : 'Pay Now'}
+                                          </Button>
+                                        )
+                                      }
+                                    })()}
+                                  </div>
+                                  <p className="text-white">{formatCurrency(quote.estimatedCost * 0.2)}</p>
+                                  <p className="text-xs text-white/80 mt-1">Due before work starts</p>
+                                </div>
+                                <div>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <p className="text-green-200 font-medium">Remaining Amount (80%)</p>
+                                    {(() => {
+                                      const correspondingInvoice = billingData?.invoices?.find((inv: any) =>
+                                        String(inv.quoteId || inv.quote_id) === String(quote.id || quote.quote_id) ||
+                                        String(inv.id) === String(quote.id || quote.quote_id)
+                                      )
+                                      const isDepositPaid = correspondingInvoice?.depositPaid || false
+                                      const isFullyPaid = correspondingInvoice?.status === 'paid'
+                                      const relatedProject = projects.find((p: any) => String(p.quote_id) === String(quote.id || (quote as any).quote_id))
+                                      const isProjectCompleted = (relatedProject?.status || '') === 'completed'
+                                      
+                                      if (isFullyPaid) {
+                                        return (
+                                          <div className="px-3 py-1 bg-green-500/20 text-green-200 border border-green-400/30 rounded text-xs font-semibold">
+                                            ✓ Paid
+                                          </div>
+                                        )
+                                      } else if (isDepositPaid) {
+                                        return (
+                                          <Button 
+                                            size="sm" 
+                                            className={`btn-gradient px-3 py-1 text-xs ${!isProjectCompleted ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            onClick={() => {
+                                              console.log('💳 Pay Remaining clicked from Invoices tab:', quote)
+                                              const invId = correspondingInvoice?.id || (((billingData?.invoices as any[]) || [])
+                                                .filter((inv: any) => (inv?.status ?? 'pending') !== 'paid' && !!(inv?.depositPaid ?? false))
+                                                .sort((a: any, b: any) => new Date(a?.issueDate || a?.dueDate || 0).getTime() - new Date(b?.issueDate || b?.dueDate || 0).getTime())
+                                                .map((inv: any) => inv?.id)
+                                                .pop())
+                                              if (invId) {
+                                                handlePayNow(invId)
+                                              } else {
+                                                console.error('No corresponding invoice found for remaining payment')
+                                                setSuccessNotification({
+                                                  title: 'No Invoice Found',
+                                                  message: 'We could not find an invoice for this quote. Please contact support.'
+                                                })
+                                                setIsSuccessNotificationOpen(true)
+                                              }
+                                            }}
+                                            disabled={isPaymentLoading || !isProjectCompleted}
+                                            title={isProjectCompleted ? undefined : 'Pay Remaining becomes available when the project is marked as completed.'}
+                                          >
+                                            {isPaymentLoading ? 'Processing...' : 'Pay Remaining'}
+                                          </Button>
+                                        )
+                                      } else {
+                                        return (
+                                          <div className="px-3 py-1 bg-white/10 text-white/80 border border-white/20 rounded text-xs">
+                                            Awaiting Deposit
+                                          </div>
+                                        )
+                                      }
+                                    })()}
+                                  </div>
+                                  <p className="text-white">{formatCurrency(quote.estimatedCost * 0.8)}</p>
+                                  <p className="text-xs text-white/80 mt-1">Due upon completion</p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {(() => {
+                              const quoteId = (quote as any).quote_id || quote.id
+                              return (
+                                <div className="mt-2 text-xs text-muted-foreground text-center">
+                                  For bank transfer, use your quote ID as the payment reference: <span className="font-medium">{quoteId}</span>
+                                </div>
+                              )
+                            })()}
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4">
+                                <div className="flex items-center">
+                                  <Badge className={getStatusColor(quote.status)}>
+                                    {(quote.status || '').split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div className="flex space-x-2">
+                                <Button 
+                                  className="btn-gradient text-white"
+                                  size="sm"
+                                  onClick={() => {
+                                    console.log('🔍 View Invoice clicked:', { id: quote.id, quote_id: quote.quote_id, quote })
+                                    const invoiceId = quote.id || quote.quote_id
+                                    if (invoiceId) {
+                                      router.push(`/client/invoice/${invoiceId}`)
+                                    } else {
+                                      console.error('❌ No invoice ID found:', quote)
+                                    }
+                                  }}
+                                >
+                                  View Invoice
+                                </Button>
+                                
+                              </div>
+                              
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Projects Tab */}
+            {activeTab === 'projects' && (
+              <div className="space-y-6">
+                <Card className="card-hover">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Briefcase className="w-5 h-5 mr-2 text-primary" />
+                      Your Projects
+                    </CardTitle>
+                    <CardDescription>
+                      Track the progress of all your projects
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      const projectQuotes = projects.length > 0
+                        ? quotes.filter(q => projects.some((p: any) => p.quote_id === (q.id || (q as any).quote_id)))
+                        : quotes.filter(q => ['approved', 'accepted', 'in_progress', 'completed'].includes(q.status))
+                      console.log('🏗️ Project quotes found:', projectQuotes)
+                      console.log('📊 All quote statuses:', quotes.map(q => ({ id: q.id, status: q.status })))
+                      console.log('📁 Projects available:', projects.length)
+                      return projectQuotes.length === 0 && projects.length === 0
+                    })() ? (
+                      <div className="text-center py-12">
+                        <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No Active Projects Yet</h3>
+                        <p className="text-muted-foreground mb-6">
+                          Your approved and active quotes will appear here as projects
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Submit a quote request to get started with your project
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {projects.length > 0 ? (
+                          projects.map((p: any, index: number) => {
+                            const relatedQuote = quotes.find(q => (q.id || (q as any).quote_id) === p.quote_id)
+                            return (
+                              <div
+                                key={`project-${p.id || index}`}
+                                className="p-6 border border-border rounded-lg hover:bg-secondary/30 transition-colors"
+                              >
+                                <div className="flex items-center justify-between mb-4">
+                                  <div>
+                                    {(p.name || (p as any).project_name) && (
+                                      <h2 className="font-bold text-xl text-cyber-mint mb-1">{p.name || (p as any).project_name}</h2>
+                                    )}
+                                    <h3 className="font-semibold text-lg">{p.quote_id || p.name || `Project ${p.id}`}</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                      Created {p.created_at ? new Date(p.created_at).toLocaleDateString() : ''}
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="flex items-center space-x-2">
+                                      <Badge className={getStatusColor(p.status)}>
+                                        {(String(p.status || '')).split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Progress Bar */}
+                                <div className="mb-4">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-medium text-gray-700">Project Progress</span>
+                                    <span className="text-sm text-gray-500">{typeof p.progress === 'number' ? `${Math.min(Math.max(p.progress, 0), 100)}%` : '0%'}</span>
+                                  </div>
+                                  <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div 
+                                      className={`h-2 rounded-full transition-all duration-300 ${
+                                        (typeof p.progress === 'number' && p.progress >= 100) || p.status === 'completed' ? 'bg-green-500' :
+                                        (typeof p.progress === 'number' && p.progress >= 50) || p.status === 'in_progress' ? 'bg-blue-500' :
+                                        'bg-primary'
+                                      }`}
+                                      style={{ width: typeof p.progress === 'number' ? `${Math.min(Math.max(p.progress, 0), 100)}%` : '0%' }}
+                                    ></div>
+                                  </div>
+                                </div>
+
+
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                  {(() => {
+                                    const features = Array.isArray((relatedQuote as any)?.selectedFeatures)
+                                      ? (relatedQuote as any).selectedFeatures
+                                      : Array.isArray((p as any)?.features)
+                                        ? (p as any).features
+                                        : []
+                                    return features.map((feature: string, i: number) => (
+                                      <span key={`feat-${i}`} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-md">
+                                        {String(feature).replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                      </span>
+                                    ))
+                                  })()}
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                  {relatedQuote && (
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => handleViewQuoteDetails(relatedQuote)}
+                                    >
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      View Details
+                                    </Button>
+                                  )}
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      if (p.github_url) {
+                                        window.open(p.github_url, '_blank')
+                                      } else {
+                                        setGithubNotSetProject(p)
+                                        setShowGithubNotSetModal(true)
+                                      }
+                                    }}
+                                  >
+                                    <Code className="w-4 h-4 mr-2" />
+                                    GitHub
+                                  </Button>
+                                  {p.status === 'completed' && (
+                                    <Button variant="outline" size="sm">
+                                      <Download className="w-4 h-4 mr-2" />
+                                      Download
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })
+                        ) : (
+                          quotes.filter(q => ['approved', 'accepted', 'in_progress', 'completed'].includes(q.status)).map((quote, index) => (
+                            <div
+                              key={`project-quote-${quote.id || index}`}
+                              className="p-6 border border-border rounded-lg hover:bg-secondary/30 transition-colors"
+                            >
+                              {/* Fallback rendering from quotes (no projects data available) */}
+                              <div className="flex items-center justify-between mb-4">
+                                <div>
+                                  <h3 className="font-semibold text-lg">{quote.id}</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    Created {new Date(quote.createdAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <div className="flex items-center space-x-2">
+                                    <Badge className={getStatusColor(quote.status)}>
+                                      {(quote.status || '').split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Simple progress approximation */}
+                              <div className="mb-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-sm font-medium text-gray-700">Project Progress</span>
+                                  <span className="text-sm text-gray-500">
+                                    {quote.status === 'approved' ? '10%' : 
+                                     quote.status === 'accepted' ? '25%' : 
+                                     quote.status === 'in_progress' ? '60%' : 
+                                     quote.status === 'completed' ? '100%' : '0%'}
+                                  </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className={`h-2 rounded-full transition-all duration-300 ${
+                                      quote.status === 'completed' ? 'bg-green-500' :
+                                      quote.status === 'in_progress' ? 'bg-blue-500' :
+                                      'bg-primary'
+                                    }`}
+                                    style={{
+                                      width: quote.status === 'approved' ? '10%' : 
+                                             quote.status === 'accepted' ? '25%' : 
+                                             quote.status === 'in_progress' ? '60%' : 
+                                             quote.status === 'completed' ? '100%' : '0%'
+                                    }}
+                                  ></div>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Files Tab removed */}
+
+            {/* Messages Tab removed - using chat widget instead */}
+
+            {/* Billing Tab */}
+            {activeTab === 'billing' && (
+              <div className="space-y-8">
+                
+                
+
+                {/* How to Pay */}
+                <Card className="card-hover">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      Payment Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="bg-transparent rounded-lg p-4 border-2 border-cyan-200 shadow-sm">
+                      <h4 className="font-bold mb-4 text-lg text-cyan-700 flex items-center">
+                        <CreditCard className="w-5 h-5 mr-2" />
+                        Pay by Bank Transfer
+                      </h4>
+                      <p className="text-sm text-gray-600 mb-4">Use these details to pay via bank transfer:</p>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                          <span className="text-cyan-700 font-semibold">Currency</span>
+                          <span className="text-white font-medium">British Pound (GBP)</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                          <span className="text-cyan-700 font-semibold">Account Name</span>
+                          <span className="text-white font-medium">Daniel James</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                          <span className="text-cyan-700 font-semibold">Account Number</span>
+                          <span className="text-white font-medium font-mono">84726350</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                          <span className="text-cyan-700 font-semibold">Sort Code</span>
+                          <span className="text-white font-medium font-mono">04-29-09</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                          <span className="text-cyan-700 font-semibold">Bank</span>
+                          <span className="text-white font-medium">Revolut Ltd</span>
+                        </div>
+                        <div className="py-2 border-b border-gray-100">
+                          <div className="text-cyan-700 font-semibold mb-1">Bank Address</div>
+                          <div className="text-white font-medium text-sm">30 South Colonnade, E14 5HX, London, United Kingdom</div>
+                        </div>
+                        <div className="py-2">
+                          <div className="text-cyan-700 font-semibold mb-1">Reference</div>
+                          <div className="text-white font-medium font-mono bg-transparent px-2 py-1 rounded">Use your quote ID</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 border border-border rounded-lg">
+                      <h4 className="font-medium mb-1">PayPal Checkout</h4>
+                      {!paypalClientId ? (
+                        <div className="mt-1 p-3 border border-yellow-300 bg-yellow-50 rounded text-yellow-800">
+                          PayPal checkout is not configured yet. It will be available once credentials are added.
+                          <div className="mt-2">
+                            <Button disabled className="opacity-60 cursor-not-allowed">Pay with PayPal</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-1">
+                          <div id="paypal-buttons-billing" />
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Settings Tab */}
+            {activeTab === 'settings' && (
+              <div className="max-w-2xl mx-auto space-y-6">
+                <Card className="card-hover">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Settings className="w-5 h-5 mr-2 text-primary" />
+                      Account Settings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">Email Notifications</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Receive updates about your projects
+                        </p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        Configure
+                      </Button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">Two-Factor Authentication</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Add an extra layer of security
+                        </p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Enable
+                      </Button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">Export Data</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Download your account data
+                        </p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Download className="w-4 h-4 mr-2" />
+                        Export
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Placeholder for other tabs */}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* GitHub Repository Not Set Modal */}
+      <AnimatePresence>
+        {showGithubNotSetModal && githubNotSetProject && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowGithubNotSetModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-gradient-to-br from-card/95 to-card/90 backdrop-blur-xl border border-border/50 rounded-2xl p-8 max-w-md w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                {/* Animated Icon */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring", damping: 20, stiffness: 300 }}
+                  className="w-20 h-20 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6 relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-purple-400/10 animate-pulse"></div>
+                  <Code className="w-10 h-10 text-blue-400 relative z-10" />
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-2 border-2 border-dashed border-blue-400/30 rounded-full"
+                  ></motion.div>
+                </motion.div>
+
+                {/* Title */}
+                <motion.h3
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-2xl font-bold text-foreground mb-3"
+                >
+                  Repository Coming Soon
+                </motion.h3>
+
+                {/* Project Name */}
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-sm text-muted-foreground mb-4 font-medium"
+                >
+                  {githubNotSetProject.name}
+                </motion.p>
+
+                {/* Main Message */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="space-y-4 mb-8"
+                >
+                  <p className="text-muted-foreground leading-relaxed">
+                    Our development team is currently setting up your project repository. 
+                    You'll be able to access your project files, documentation, and track 
+                    development progress once it's ready.
+                  </p>
+                  
+                  <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium text-blue-400">Development Status</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Repository setup is in progress. You'll receive a notification when it's available.
+                    </p>
+                  </div>
+                </motion.div>
+
+                {/* Action Button */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  <Button
+                    onClick={() => setShowGithubNotSetModal(false)}
+                    className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    <span className="flex items-center gap-2">
+                      Got it
+                      <motion.div
+                        animate={{ x: [0, 4, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      >
+                        →
+                      </motion.div>
+                    </span>
+                  </Button>
+                </motion.div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Add Payment Method Dialog */}
+      <AnimatePresence>
+        {showAddPaymentDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            onClick={() => setShowAddPaymentDialog(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-semibold mb-4">Add Payment Method</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Card Type</label>
+                  <select
+                    value={paymentFormData.cardType}
+                    onChange={(e) => setPaymentFormData({...paymentFormData, cardType: e.target.value})}
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="visa">Visa</option>
+                    <option value="mastercard">Mastercard</option>
+                    <option value="amex">American Express</option>
+                    <option value="paypal">PayPal</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Card Number</label>
+                  <Input
+                    type="text"
+                    value={paymentFormData.cardNumber}
+                    onChange={(e) => setPaymentFormData({...paymentFormData, cardNumber: e.target.value})}
+                    placeholder="1234 5678 9012 3456"
+                    className="w-full"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Expiry Month</label>
+                    <Input
+                      type="text"
+                      value={paymentFormData.expiryMonth}
+                      onChange={(e) => setPaymentFormData({...paymentFormData, expiryMonth: e.target.value})}
+                      placeholder="12"
+                      maxLength={2}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Expiry Year</label>
+                    <Input
+                      type="text"
+                      value={paymentFormData.expiryYear}
+                      onChange={(e) => setPaymentFormData({...paymentFormData, expiryYear: e.target.value})}
+                      placeholder="25"
+                      maxLength={2}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isDefault"
+                    checked={paymentFormData.isDefault}
+                    onChange={(e) => setPaymentFormData({...paymentFormData, isDefault: e.target.checked})}
+                    className="rounded"
+                  />
+                  <label htmlFor="isDefault" className="text-sm font-medium">
+                    Set as default payment method
+                  </label>
+                </div>
+                <div className="flex space-x-3">
+                  <Button
+                    onClick={handleAddPaymentMethod}
+                    disabled={!paymentFormData.cardNumber || !paymentFormData.expiryMonth || !paymentFormData.expiryYear || isAddingPayment}
+                    className="btn-gradient flex-1"
+                  >
+                    {isAddingPayment ? 'Adding...' : 'Add Payment Method'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddPaymentDialog(false)
+                      setPaymentFormData({
+                        cardType: 'visa',
+                        cardNumber: '',
+                        expiryMonth: '',
+                        expiryYear: '',
+                        isDefault: false
+                      })
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Billing Settings Dialog */}
+      <AnimatePresence>
+        {showBillingSettingsDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            onClick={() => setShowBillingSettingsDialog(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-semibold mb-4">Billing Settings</h3>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="emailInvoices"
+                    checked={billingSettingsData.emailInvoices}
+                    onChange={(e) => setBillingSettingsData({...billingSettingsData, emailInvoices: e.target.checked})}
+                    className="rounded"
+                  />
+                  <label htmlFor="emailInvoices" className="text-sm font-medium">
+                    Email invoices and payment confirmations
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="autoPayEnabled"
+                    checked={billingSettingsData.autoPayEnabled}
+                    onChange={(e) => setBillingSettingsData({...billingSettingsData, autoPayEnabled: e.target.checked})}
+                    className="rounded"
+                  />
+                  <label htmlFor="autoPayEnabled" className="text-sm font-medium">
+                    Enable auto-pay for invoices
+                  </label>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Billing Address</label>
+                  <div className="space-y-2">
+                    <Input
+                      value={billingSettingsData.billingAddress.street}
+                      onChange={(e) => setBillingSettingsData({
+                        ...billingSettingsData,
+                        billingAddress: {...billingSettingsData.billingAddress, street: e.target.value}
+                      })}
+                      placeholder="Street Address"
+                      className="w-full"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        value={billingSettingsData.billingAddress.city}
+                        onChange={(e) => setBillingSettingsData({
+                          ...billingSettingsData,
+                          billingAddress: {...billingSettingsData.billingAddress, city: e.target.value}
+                        })}
+                        placeholder="City"
+                        className="w-full"
+                      />
+                      <Input
+                        value={billingSettingsData.billingAddress.state}
+                        onChange={(e) => setBillingSettingsData({
+                          ...billingSettingsData,
+                          billingAddress: {...billingSettingsData.billingAddress, state: e.target.value}
+                        })}
+                        placeholder="State"
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        value={billingSettingsData.billingAddress.postalCode}
+                        onChange={(e) => setBillingSettingsData({
+                          ...billingSettingsData,
+                          billingAddress: {...billingSettingsData.billingAddress, postalCode: e.target.value}
+                        })}
+                        placeholder="Postal Code"
+                        className="w-full"
+                      />
+                      <Input
+                        value={billingSettingsData.billingAddress.country}
+                        onChange={(e) => setBillingSettingsData({
+                          ...billingSettingsData,
+                          billingAddress: {...billingSettingsData.billingAddress, country: e.target.value}
+                        })}
+                        placeholder="Country"
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Tax ID</label>
+                  <Input
+                    value={billingSettingsData.taxId}
+                    onChange={(e) => setBillingSettingsData({...billingSettingsData, taxId: e.target.value})}
+                    placeholder="Tax identification number"
+                    className="w-full"
+                  />
+                </div>
+                <div className="flex space-x-3">
+                  <Button
+                    onClick={handleUpdateBillingSettings}
+                    disabled={isUpdatingSettings}
+                    className="btn-gradient flex-1"
+                  >
+                    {isUpdatingSettings ? 'Updating...' : 'Update Settings'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowBillingSettingsDialog(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Quote Type Modal */}
+      <QuoteTypeModal 
+        isOpen={isQuoteModalOpen} 
+        onClose={() => setIsQuoteModalOpen(false)} 
+      />
+      
+      {/* Quote Details Modal */}
+      <QuoteDetailsModal 
+        isOpen={isQuoteDetailsOpen} 
+        onClose={() => setIsQuoteDetailsOpen(false)} 
+        quote={selectedQuote}
+        onCancelQuote={handleCancelQuote}
+      />
+      
+      {/* Confirm Cancel Dialog */}
+      <ConfirmDialog 
+        isOpen={isConfirmDialogOpen}
+        onClose={() => {
+          console.log('ConfirmDialog onClose called, resetting state')
+          setIsConfirmDialogOpen(false)
+          setPendingCancelQuoteId(null)
+          setConfirmCancelFunction(null)
+        }}
+        onConfirm={confirmCancelQuote}
+        title="Cancel Quote"
+        description="Are you sure you want to cancel this quote? This action cannot be undone."
+        confirmText="Cancel Quote"
+        cancelText="Keep Quote"
+        variant="destructive"
+      />
+      
+      {/* Success Notification */}
+      <SuccessNotification
+        isOpen={isSuccessNotificationOpen}
+        onClose={() => setIsSuccessNotificationOpen(false)}
+        title={successNotification.title}
+        message={successNotification.message}
+      />
+      
+      {/* Chat Widget */}
+      <ClientMessaging />
+      </main>
+  )
+}

@@ -111,19 +111,42 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
-        { error: 'Authorization required' },
+        { success: false, error: 'Authorization required' },
         { status: 401 }
       )
     }
 
     const token = authHeader.substring(7)
-    const decoded = jwt.verify(token, JWT_SECRET) as any
     const { message } = await request.json()
     
     if (!message || message.trim().length === 0) {
       return NextResponse.json(
-        { error: 'Message content is required' },
+        { success: false, error: 'Message content is required' },
         { status: 400 }
+      )
+    }
+    
+    // Try to decode token (JWT or base64 email)
+    let email: string | null = null
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any
+      email = decoded.email
+    } catch {
+      // Fallback: base64 email token
+      try {
+        const decodedEmail = Buffer.from(token, 'base64').toString('utf8')
+        if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(decodedEmail)) {
+          email = decodedEmail
+        }
+      } catch {
+        // ignore
+      }
+    }
+    
+    if (!email) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid token' },
+        { status: 401 }
       )
     }
     
@@ -133,12 +156,12 @@ export async function POST(request: NextRequest) {
       // Get customer ID from email
       const customerResult = await client.query(
         'SELECT id FROM customers WHERE email = $1',
-        [decoded.email]
+        [email]
       )
       
       if (customerResult.rows.length === 0) {
         return NextResponse.json(
-          { error: 'Customer not found' },
+          { success: false, error: 'Customer not found' },
           { status: 404 }
         )
       }
@@ -169,7 +192,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error sending message:', error)
     return NextResponse.json(
-      { error: 'Failed to send message' },
+      { success: false, error: 'Failed to send message' },
       { status: 500 }
     )
   }

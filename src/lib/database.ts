@@ -17,10 +17,10 @@ export function getPool(): Pool {
     pool = new Pool({
       connectionString,
       ssl: isCloudDatabase ? { rejectUnauthorized: false } : false,
-      max: isCloudDatabase ? 3 : 20, // Very low pool size for serverless (Netlify functions)
+      max: isCloudDatabase ? 5 : 20, // Slightly higher pool size for better availability
       min: 0, // No minimum connections
-      idleTimeoutMillis: isCloudDatabase ? 10000 : 30000, // Shorter idle timeout for serverless
-      connectionTimeoutMillis: 8000, // Faster timeout
+      idleTimeoutMillis: isCloudDatabase ? 20000 : 30000, // Longer idle timeout
+      connectionTimeoutMillis: 15000, // Increased timeout for cloud databases
       allowExitOnIdle: true, // Allow pool to close when idle (important for serverless)
     })
     

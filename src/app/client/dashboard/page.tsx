@@ -1123,10 +1123,15 @@ export default function ClientDashboard() {
 
   if (loading) {
     return (
-      <main className="pt-16 min-h-screen flex items-center justify-center">
+      <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading your dashboard...</p>
+          <div className="relative w-16 h-16 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full border-4 border-slate-700"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-cyan-500 animate-spin"></div>
+            <div className="absolute inset-2 rounded-full border-4 border-transparent border-t-purple-500 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+          </div>
+          <h2 className="text-xl font-semibold text-white mb-2">Loading Dashboard</h2>
+          <p className="text-slate-400">Preparing your workspace...</p>
         </div>
       </main>
     )
@@ -1139,65 +1144,150 @@ export default function ClientDashboard() {
   const stats = getProjectStats()
 
   return (
-    <main className="pt-16 min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      {/* Sidebar for Desktop */}
+      <aside className="fixed left-0 top-0 h-full w-64 bg-slate-900/80 backdrop-blur-xl border-r border-slate-800 hidden lg:flex flex-col z-40">
+        {/* Logo Area */}
+        <div className="p-6 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
+              <span className="text-white font-bold text-lg">L</span>
+            </div>
+            <div>
+              <h1 className="font-bold text-white">Lumora Pro</h1>
+              <p className="text-xs text-slate-400">Client Portal</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {tabs.map((tab) => {
+            const Icon = tab.icon
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-400 border border-cyan-500/30'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                {tab.label}
+              </button>
+            )
+          })}
+        </nav>
+        
+        {/* User Section */}
+        <div className="p-4 border-t border-slate-800">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
+              <span className="text-white font-semibold text-sm">{customer.name?.charAt(0) || 'U'}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">{customer.name}</p>
+              <p className="text-xs text-slate-400 truncate">{customer.email}</p>
+            </div>
+          </div>
+          <Button 
+            onClick={handleLogout} 
+            variant="outline" 
+            className="w-full border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800"
           >
-            <h1 className="text-3xl font-bold text-foreground">
-              Welcome back, {customer.name}!
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              Manage your projects and track progress
-            </p>
-          </motion.div>
-          
-          <div className="flex items-center space-x-4">
-            {/* Notification Dropdown */}
-            <NotificationDropdown
-              notifications={notifications}
-              unreadCount={unreadCount}
-              onMarkAsRead={markNotificationAsRead}
-              onMarkAllAsRead={markAllNotificationsAsRead}
-              onDelete={deleteNotification}
-              onRefresh={fetchNotifications}
-            />
-            
-            <Button onClick={handleLogout} variant="outline">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
         </div>
+      </aside>
 
-        {/* Navigation Tabs */}
-        <div className="mb-8">
-          <div className="border-b border-border overflow-x-auto">
-            <nav className="flex space-x-4 lg:space-x-8 min-w-max pb-px">
-              {tabs.map((tab) => {
-                const Icon = tab.icon
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                      activeTab === tab.id
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 mr-2" />
-                    {tab.label}
-                  </button>
-                )
-              })}
-            </nav>
+      {/* Mobile Header */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800 z-40 px-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
+            <span className="text-white font-bold text-sm">L</span>
           </div>
+          <span className="font-semibold text-white">Lumora Pro</span>
         </div>
+        <div className="flex items-center gap-2">
+          <NotificationDropdown
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onMarkAsRead={markNotificationAsRead}
+            onMarkAllAsRead={markAllNotificationsAsRead}
+            onDelete={deleteNotification}
+            onRefresh={fetchNotifications}
+          />
+          <Button onClick={handleLogout} size="sm" variant="ghost" className="text-slate-400 hover:text-white">
+            <LogOut className="w-4 h-4" />
+          </Button>
+        </div>
+      </header>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 z-40 px-2 flex items-center justify-around">
+        {tabs.slice(0, 5).map((tab) => {
+          const Icon = tab.icon
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${
+                activeTab === tab.id
+                  ? 'text-cyan-400'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[10px] font-medium">{tab.label}</span>
+            </button>
+          )
+        })}
+      </nav>
+
+      {/* Main Content Area */}
+      <div className="lg:ml-64 pt-16 lg:pt-0 pb-20 lg:pb-0 min-h-screen">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          {/* Page Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <h1 className="text-2xl lg:text-3xl font-bold text-white">
+                {activeTab === 'overview' && `Welcome back, ${customer.name?.split(' ')[0]}!`}
+                {activeTab === 'quotes' && 'Your Quotes'}
+                {activeTab === 'invoices' && 'Invoices & Payments'}
+                {activeTab === 'projects' && 'Your Projects'}
+                {activeTab === 'billing' && 'Billing & Payments'}
+                {activeTab === 'profile' && 'Your Profile'}
+                {activeTab === 'settings' && 'Settings'}
+              </h1>
+              <p className="text-slate-400 mt-1 text-sm lg:text-base">
+                {activeTab === 'overview' && 'Here\'s what\'s happening with your projects'}
+                {activeTab === 'quotes' && 'Manage and track all your quote requests'}
+                {activeTab === 'invoices' && 'View and pay your invoices'}
+                {activeTab === 'projects' && 'Track progress on your active projects'}
+                {activeTab === 'billing' && 'Manage payment methods and billing info'}
+                {activeTab === 'profile' && 'Update your personal information'}
+                {activeTab === 'settings' && 'Configure your account preferences'}
+              </p>
+            </motion.div>
+            
+            <div className="hidden lg:flex items-center gap-3">
+              <NotificationDropdown
+                notifications={notifications}
+                unreadCount={unreadCount}
+                onMarkAsRead={markNotificationAsRead}
+                onMarkAllAsRead={markAllNotificationsAsRead}
+                onDelete={deleteNotification}
+                onRefresh={fetchNotifications}
+              />
+            </div>
+          </div>
 
         {/* Tab Content */}
         <AnimatePresence mode="wait">
@@ -1210,343 +1300,271 @@ export default function ClientDashboard() {
           >
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                {/* Professional Header */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-semibold text-foreground">Dashboard Overview</h2>
-                    <p className="text-muted-foreground mt-1">Monitor your projects and account status</p>
+                {/* Key Metrics - Modern Glass Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+                  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-5 hover:border-cyan-500/30 transition-all duration-300">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                        <Briefcase className="w-5 h-5 text-cyan-400" />
+                      </div>
+                      {stats.completedProjects > 0 && (
+                        <span className="text-xs text-slate-400 bg-slate-700/50 px-2 py-1 rounded-full">
+                          +{stats.completedProjects} done
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-2xl lg:text-3xl font-bold text-white">{stats.activeProjects}</p>
+                    <p className="text-sm text-slate-400 mt-1">Active Projects</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Last updated</p>
-                    <p className="text-sm font-medium">{new Date().toLocaleDateString('en-GB', { 
-                      day: 'numeric', 
-                      month: 'short', 
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}</p>
+
+                  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-5 hover:border-amber-500/30 transition-all duration-300">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5 text-amber-400" />
+                      </div>
+                    </div>
+                    <p className="text-2xl lg:text-3xl font-bold text-white">{formatCurrency(stats.totalAmountDue)}</p>
+                    <p className="text-sm text-slate-400 mt-1">Amount Due</p>
+                  </div>
+
+                  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-5 hover:border-emerald-500/30 transition-all duration-300">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                        <DollarSign className="w-5 h-5 text-emerald-400" />
+                      </div>
+                    </div>
+                    <p className="text-2xl lg:text-3xl font-bold text-white">{formatCurrency(stats.totalPaidAmount)}</p>
+                    <p className="text-sm text-slate-400 mt-1">Total Invested</p>
+                  </div>
+
+                  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-5 hover:border-purple-500/30 transition-all duration-300">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        stats.pendingInvoices > 0 ? 'bg-purple-500/20' : 'bg-slate-700/50'
+                      }`}>
+                        <CreditCard className={`w-5 h-5 ${
+                          stats.pendingInvoices > 0 ? 'text-purple-400' : 'text-slate-500'
+                        }`} />
+                      </div>
+                      {stats.pendingInvoices > 0 && (
+                        <span className="text-xs text-amber-400 bg-amber-500/20 px-2 py-1 rounded-full">
+                          Action needed
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-2xl lg:text-3xl font-bold text-white">{stats.pendingInvoices}</p>
+                    <p className="text-sm text-slate-400 mt-1">Pending Invoices</p>
                   </div>
                 </div>
 
-                {/* Key Metrics */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <Card className="border-l-4 border-l-blue-500">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Active Projects</p>
-                          <p className="text-2xl font-semibold">{stats.activeProjects}</p>
-                          {stats.completedProjects > 0 && (
-                            <p className="text-xs text-muted-foreground">{stats.completedProjects} completed</p>
-                          )}
-                        </div>
-                        <div className="h-8 w-8 bg-blue-50 rounded-full flex items-center justify-center">
-                          <Briefcase className="h-4 w-4 text-blue-600" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-l-4 border-l-emerald-500">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Amount Due</p>
-                          <p className="text-2xl font-semibold">{formatCurrency(stats.totalAmountDue)}</p>
-                          <p className="text-xs text-muted-foreground">Unpaid invoices</p>
-                        </div>
-                        <div className="h-8 w-8 bg-emerald-50 rounded-full flex items-center justify-center">
-                          <TrendingUp className="h-4 w-4 text-emerald-600" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-l-4 border-l-emerald-500">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Total Investment</p>
-                          <p className="text-2xl font-semibold">{formatCurrency(stats.totalPaidAmount)}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {stats.totalPaidAmount > 0 ? 'Deposits & payments made' : 'No payments yet'}
-                          </p>
-                        </div>
-                        <div className="h-8 w-8 bg-emerald-50 rounded-full flex items-center justify-center">
-                          <DollarSign className="h-4 w-4 text-emerald-600" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className={`border-l-4 ${stats.pendingInvoices > 0 ? 'border-l-amber-500' : 'border-l-gray-300'}`}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Invoices</p>
-                          <p className="text-2xl font-semibold">{stats.pendingInvoices}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {stats.pendingInvoices > 0 ? 'Require payment' : 'All settled'}
-                          </p>
-                        </div>
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                          stats.pendingInvoices > 0 ? 'bg-amber-50' : 'bg-gray-50'
-                        }`}>
-                          <CreditCard className={`h-4 w-4 ${
-                            stats.pendingInvoices > 0 ? 'text-amber-600' : 'text-gray-400'
-                          }`} />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Payment Notifications */}
+                {/* Payment Alert Banner */}
                 {(stats.overdueInvoices > 0 || (stats.nextDueInvoice && (!stats.nextDueInvoice.depositPaid || stats.relatedProjectCompleted))) && (
-                  <Card className="border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50">
-                    <CardContent className="p-6">
-                      <div className="flex items-start space-x-4">
-                        <div className="h-10 w-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <AlertTriangle className="h-5 w-5 text-orange-600" />
+                  <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-2xl p-4 lg:p-6">
+                    <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                          <AlertTriangle className="w-6 h-6 text-amber-400" />
                         </div>
-                        <div className="flex-1 space-y-3">
-                          <div>
-                            <h3 className="text-lg font-semibold text-orange-900">Payment Action Required</h3>
-                            <p className="text-sm text-orange-700 mt-1">Please review and complete your outstanding payments</p>
-                          </div>
-                          
-                          {stats.overdueInvoices > 0 && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                              <div className="flex items-center space-x-2">
-                                <div className="h-2 w-2 bg-red-500 rounded-full"></div>
-                                <p className="text-sm font-medium text-red-800">
-                                  {stats.overdueInvoices} Overdue Invoice{stats.overdueInvoices > 1 ? 's' : ''}
-                                </p>
-                              </div>
-                              <p className="text-xs text-red-700 mt-1">Immediate attention required</p>
-                            </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-white">Payment Action Required</h3>
+                          <p className="text-sm text-slate-400 mt-1">
+                            {stats.overdueInvoices > 0 
+                              ? `You have ${stats.overdueInvoices} overdue invoice${stats.overdueInvoices > 1 ? 's' : ''}`
+                              : !stats.nextDueInvoice?.depositPaid 
+                                ? 'Project deposit required to begin work'
+                                : 'Final payment due for completed project'
+                            }
+                          </p>
+                          {stats.nextDueAmount > 0 && (
+                            <p className="text-xl font-bold text-amber-400 mt-2">{formatCurrency(stats.nextDueAmount)}</p>
                           )}
-                          
-                          {stats.nextDueInvoice && (!stats.nextDueInvoice.depositPaid || stats.relatedProjectCompleted) && (
-                            <div className="bg-white border border-orange-200 rounded-lg p-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center space-x-2">
-                                  <div className="h-2 w-2 bg-orange-500 rounded-full"></div>
-                                  <p className="text-sm font-medium text-orange-900">
-                                    {!stats.nextDueInvoice.depositPaid ? 'Project Deposit Required' : 
-                                     stats.relatedProjectCompleted ? 'Final Payment Due' : 'Next Payment Due'}
-                                  </p>
-                                </div>
-                                <span className="text-lg font-bold text-orange-900">
-                                  {formatCurrency(stats.nextDueAmount)}
-                                </span>
-                              </div>
-                              <p className="text-xs text-orange-700">
-                                {!stats.nextDueInvoice.depositPaid ? 
-                                  'Required to begin work on your project' : 
-                                  stats.relatedProjectCompleted ? 
-                                    'Final payment for completed project' : 
-                                    'Remaining balance for ongoing project'
-                                }
-                              </p>
-                            </div>
-                          )}
-                          
-                          <div className="flex space-x-3 pt-2">
-                            <Button 
-                              size="sm" 
-                              className="bg-orange-600 hover:bg-orange-700 text-white"
-                              onClick={() => setActiveTab('invoices')}
-                            >
-                              <CreditCard className="h-4 w-4 mr-2" />
-                              View & Pay Invoices
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                              onClick={() => setActiveTab('billing')}
-                            >
-                              Payment Methods
-                            </Button>
-                          </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                      <div className="flex gap-3 lg:flex-shrink-0">
+                        <Button 
+                          onClick={() => setActiveTab('invoices')}
+                          className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold"
+                        >
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          Pay Now
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                          onClick={() => setActiveTab('billing')}
+                        >
+                          View Details
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {/* Main Content Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
                   {/* Recent Activity */}
-                  <Card className="lg:col-span-2">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-medium flex items-center">
-                        <Activity className="w-4 h-4 mr-2 text-muted-foreground" />
+                  <div className="lg:col-span-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <Activity className="w-5 h-5 text-cyan-400" />
                         Recent Activity
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      {quotes.length === 0 ? (
-                        <div className="text-center py-8">
-                          <div className="h-12 w-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
-                            <Activity className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                          <p className="text-sm text-muted-foreground">No recent activity</p>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="mt-3"
-                            onClick={() => setIsQuoteModalOpen(true)}
-                          >
-                            Request Your First Quote
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {quotes.slice(0, 4).map((quote, index) => (
-                            <div key={`activity-${quote.id || index}`} className="flex items-center space-x-3 py-2 border-b border-border/50 last:border-0">
-                              <div className="h-2 w-2 bg-primary rounded-full"></div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">Quote {quote.quote_id || quote.id}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(quote.createdAt).toLocaleDateString('en-GB', { 
-                                    day: 'numeric', 
-                                    month: 'short' 
-                                  })}
-                                </p>
-                              </div>
-                              <Badge variant="outline" className="text-xs">
-                                {(quote.status || '').split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}
-                              </Badge>
-                            </div>
-                          ))}
-                          {quotes.length > 4 && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="w-full mt-2"
-                              onClick={() => setActiveTab('quotes')}
-                            >
-                              View All Quotes ({quotes.length})
-                            </Button>
-                          )}
-                        </div>
+                      </h3>
+                      {quotes.length > 0 && (
+                        <button 
+                          onClick={() => setActiveTab('quotes')}
+                          className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
+                        >
+                          View all
+                        </button>
                       )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Quick Actions */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-medium flex items-center">
-                        <Zap className="w-4 h-4 mr-2 text-muted-foreground" />
-                        Quick Actions
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="space-y-2">
+                    </div>
+                    
+                    {quotes.length === 0 ? (
+                      <div className="text-center py-8">
+                        <div className="w-16 h-16 rounded-2xl bg-slate-700/50 flex items-center justify-center mx-auto mb-4">
+                          <Activity className="w-8 h-8 text-slate-500" />
+                        </div>
+                        <p className="text-slate-400 mb-4">No recent activity yet</p>
                         <Button 
-                          variant="ghost" 
-                          className="w-full justify-start h-auto p-3 text-left"
                           onClick={() => setIsQuoteModalOpen(true)}
+                          className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white"
                         >
-                          <div className="flex items-center space-x-3">
-                            <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                              <Plus className="h-4 w-4 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">New Quote</p>
-                              <p className="text-xs text-muted-foreground">Request project estimate</p>
-                            </div>
-                          </div>
-                        </Button>
-                        
-                        <Button 
-                          variant="ghost" 
-                          className="w-full justify-start h-auto p-3 text-left"
-                          onClick={() => setActiveTab('projects')}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="h-8 w-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                              <Briefcase className="h-4 w-4 text-blue-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">View Projects</p>
-                              <p className="text-xs text-muted-foreground">Track progress</p>
-                            </div>
-                          </div>
-                        </Button>
-                        
-                        <Button 
-                          variant="ghost" 
-                          className="w-full justify-start h-auto p-3 text-left"
-                          onClick={() => setActiveTab('invoices')}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="h-8 w-8 bg-green-50 rounded-lg flex items-center justify-center">
-                              <CreditCard className="h-4 w-4 text-green-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">Manage Billing</p>
-                              <p className="text-xs text-muted-foreground">Payments & invoices</p>
-                            </div>
-                          </div>
-                        </Button>
-                        
-                        <Button 
-                          variant="ghost" 
-                          className="w-full justify-start h-auto p-3 text-left"
-                          onClick={() => setActiveTab('profile')}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="h-8 w-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                              <User className="h-4 w-4 text-purple-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">Account Settings</p>
-                              <p className="text-xs text-muted-foreground">Update profile</p>
-                            </div>
-                          </div>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Request Your First Quote
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
+                    ) : (
+                      <div className="space-y-3">
+                        {quotes.slice(0, 4).map((quote, index) => (
+                          <div 
+                            key={`activity-${quote.id || index}`} 
+                            className="flex items-center gap-4 p-3 rounded-xl bg-slate-700/30 hover:bg-slate-700/50 transition-colors cursor-pointer"
+                            onClick={() => handleViewQuoteDetails(quote)}
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                              <FileText className="w-5 h-5 text-cyan-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-white truncate">
+                                Quote #{(quote.quote_id || quote.id || '').toString().slice(-8)}
+                              </p>
+                              <p className="text-xs text-slate-400">
+                                {new Date(quote.createdAt).toLocaleDateString('en-GB', { 
+                                  day: 'numeric', 
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              quote.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
+                              quote.status === 'in_progress' ? 'bg-cyan-500/20 text-cyan-400' :
+                              quote.status === 'accepted' ? 'bg-purple-500/20 text-purple-400' :
+                              quote.status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
+                              'bg-slate-600/50 text-slate-400'
+                            }`}>
+                              {(quote.status || '').split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-6">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
+                      <Zap className="w-5 h-5 text-purple-400" />
+                      Quick Actions
+                    </h3>
+                    
+                    <div className="space-y-2">
+                      <button 
+                        onClick={() => setIsQuoteModalOpen(true)}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/20 hover:border-cyan-500/40 transition-all text-left"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
+                          <Plus className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-white text-sm">New Quote</p>
+                          <p className="text-xs text-slate-400">Request project estimate</p>
+                        </div>
+                      </button>
+                      
+                      <button 
+                        onClick={() => setActiveTab('projects')}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-700/50 transition-all text-left"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                          <Briefcase className="w-5 h-5 text-cyan-400" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-white text-sm">View Projects</p>
+                          <p className="text-xs text-slate-400">Track progress</p>
+                        </div>
+                      </button>
+                      
+                      <button 
+                        onClick={() => setActiveTab('invoices')}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-700/50 transition-all text-left"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                          <CreditCard className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-white text-sm">Manage Billing</p>
+                          <p className="text-xs text-slate-400">Payments & invoices</p>
+                        </div>
+                      </button>
+                      
+                      <button 
+                        onClick={() => setActiveTab('profile')}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-700/50 transition-all text-left"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                          <User className="w-5 h-5 text-purple-400" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-white text-sm">Account Settings</p>
+                          <p className="text-xs text-slate-400">Update profile</p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Project Status Summary */}
                 {stats.activeProjects > 0 && (
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-medium flex items-center">
-                        <Briefcase className="w-4 h-4 mr-2 text-muted-foreground" />
+                  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <Briefcase className="w-5 h-5 text-cyan-400" />
                         Project Status
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="text-center p-4 bg-blue-50 rounded-lg">
-                          <p className="text-2xl font-semibold text-blue-600">{stats.activeProjects}</p>
-                          <p className="text-sm text-blue-700">In Progress</p>
-                        </div>
-                        <div className="text-center p-4 bg-green-50 rounded-lg">
-                          <p className="text-2xl font-semibold text-green-600">{stats.completedProjects}</p>
-                          <p className="text-sm text-green-700">Completed</p>
-                        </div>
-                        <div className="text-center p-4 bg-gray-50 rounded-lg">
-                          <p className="text-2xl font-semibold text-gray-600">{stats.totalQuotes}</p>
-                          <p className="text-sm text-gray-700">Total Quotes</p>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        className="w-full mt-4"
+                      </h3>
+                      <button 
                         onClick={() => setActiveTab('projects')}
+                        className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
                       >
-                        View All Projects
-                      </Button>
-                    </CardContent>
-                  </Card>
+                        View all
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-3 lg:gap-4">
+                      <div className="text-center p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+                        <p className="text-2xl lg:text-3xl font-bold text-cyan-400">{stats.activeProjects}</p>
+                        <p className="text-xs lg:text-sm text-slate-400 mt-1">In Progress</p>
+                      </div>
+                      <div className="text-center p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                        <p className="text-2xl lg:text-3xl font-bold text-emerald-400">{stats.completedProjects}</p>
+                        <p className="text-xs lg:text-sm text-slate-400 mt-1">Completed</p>
+                      </div>
+                      <div className="text-center p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                        <p className="text-2xl lg:text-3xl font-bold text-purple-400">{stats.totalQuotes}</p>
+                        <p className="text-xs lg:text-sm text-slate-400 mt-1">Total Quotes</p>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -1555,17 +1573,17 @@ export default function ClientDashboard() {
             {activeTab === 'profile' && (
               <div className="max-w-4xl mx-auto space-y-6">
                 {/* Profile Header */}
-                <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-8 border border-primary/20">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-6">
-                      <div className="h-20 w-20 bg-primary/20 rounded-full flex items-center justify-center">
-                        <User className="h-10 w-10 text-primary" />
+                <div className="bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-transparent rounded-2xl p-6 lg:p-8 border border-slate-700/50">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 lg:gap-6">
+                      <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-2xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                        <span className="text-2xl lg:text-3xl font-bold text-white">{customer?.name?.charAt(0) || 'U'}</span>
                       </div>
                       <div>
-                        <h2 className="text-2xl font-bold text-foreground">{customer?.name || 'Your Profile'}</h2>
-                        <p className="text-muted-foreground mt-1">{customer?.email}</p>
-                        <div className="flex items-center mt-2 space-x-4">
-                          <span className="text-sm text-muted-foreground">
+                        <h2 className="text-xl lg:text-2xl font-bold text-white">{customer?.name || 'Your Profile'}</h2>
+                        <p className="text-slate-400 mt-1">{customer?.email}</p>
+                        <div className="flex items-center mt-2">
+                          <span className="text-sm text-slate-500">
                             {customer?.company && `${customer.company} • `}
                             Member since {new Date().getFullYear()}
                           </span>
@@ -1573,7 +1591,7 @@ export default function ClientDashboard() {
                       </div>
                     </div>
                     <Button
-                      className="btn-gradient"
+                      className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white"
                       onClick={() => {
                         if (isEditingProfile) {
                           handleProfileSave()
@@ -1623,11 +1641,9 @@ export default function ClientDashboard() {
 
                 {/* Profile Content */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <Card className="lg:col-span-2">
-                    <CardHeader className="pb-4">
-                      <CardTitle className="text-lg font-medium">Profile Information</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
+                  <div className="lg:col-span-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-6">
+                    <h3 className="text-lg font-semibold text-white mb-6">Profile Information</h3>
+                    <div className="space-y-6">
                     {isEditingProfile ? (
                       <div className="grid gap-6">
                         {/* Basic Information */}
@@ -2119,81 +2135,83 @@ export default function ClientDashboard() {
                         </div>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                    </div>
+                  </div>
 
                 {/* Password Change Section */}
-                <Card className="card-hover">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Lock className="w-5 h-5 mr-2 text-primary" />
-                      Security Settings
-                    </CardTitle>
-                    <CardDescription>
-                      Keep your account secure by updating your password regularly
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {!isChangingPassword ? (
-                      <Button
-                        onClick={() => setIsChangingPassword(true)}
-                        className="btn-gradient"
-                      >
-                        <Lock className="w-4 h-4 mr-2" />
-                        Change Password
-                      </Button>
-                    ) : (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-2">Current Password</label>
-                          <Input
-                            type="password"
-                            value={passwordData.currentPassword}
-                            onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                            placeholder="Enter current password"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium mb-2">New Password</label>
-                          <Input
-                            type="password"
-                            value={passwordData.newPassword}
-                            onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                            placeholder="Enter new password"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium mb-2">Confirm New Password</label>
-                          <Input
-                            type="password"
-                            value={passwordData.confirmPassword}
-                            onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                            placeholder="Confirm new password"
-                          />
-                        </div>
-                        
-                        <div className="flex space-x-3">
-                          <Button onClick={handlePasswordChange} className="btn-gradient">
-                            <Save className="w-4 h-4 mr-2" />
-                            Update Password
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setIsChangingPassword(false)
-                              setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
-                            }}
-                          >
-                            <X className="w-4 h-4 mr-2" />
-                            Cancel
-                          </Button>
-                        </div>
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-6">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-2">
+                    <Lock className="w-5 h-5 text-purple-400" />
+                    Security Settings
+                  </h3>
+                  <p className="text-sm text-slate-400 mb-4">Keep your account secure by updating your password regularly</p>
+                  
+                  {!isChangingPassword ? (
+                    <Button
+                      onClick={() => setIsChangingPassword(true)}
+                      className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white"
+                    >
+                      <Lock className="w-4 h-4 mr-2" />
+                      Change Password
+                    </Button>
+                  ) : (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Current Password</label>
+                        <Input
+                          type="password"
+                          value={passwordData.currentPassword}
+                          onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                          placeholder="Enter current password"
+                          className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                        />
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">New Password</label>
+                        <Input
+                          type="password"
+                          value={passwordData.newPassword}
+                          onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                          placeholder="Enter new password"
+                          className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Confirm New Password</label>
+                        <Input
+                          type="password"
+                          value={passwordData.confirmPassword}
+                          onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                          placeholder="Confirm new password"
+                          className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                        />
+                      </div>
+                      
+                      <div className="flex gap-3">
+                        <Button 
+                          onClick={handlePasswordChange} 
+                          className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white"
+                        >
+                          <Save className="w-4 h-4 mr-2" />
+                          Update Password
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                          onClick={() => {
+                            setIsChangingPassword(false)
+                            setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+                          }}
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 </div>
               </div>
             )}
@@ -2201,50 +2219,50 @@ export default function ClientDashboard() {
             {/* Quotes Tab */}
             {activeTab === 'quotes' && (
               <div className="space-y-6">
-                {/* Request New Quote CTA - Compact Version */}
-                <Card className="card-hover gradient-primary text-white">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                          <Zap className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-bold mb-1">Need a New Quote?</h3>
-                          <p className="text-white/80 text-sm">Choose from packages or request a custom solution</p>
-                        </div>
+                {/* Request New Quote CTA */}
+                <div className="bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 rounded-2xl p-4 lg:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                        <Zap className="w-6 h-6 text-white" />
                       </div>
-                      <Button 
-                        size="lg"
-                        onClick={() => setIsQuoteModalOpen(true)}
-                        className="bg-slate-800 text-white hover:bg-slate-900 border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3 font-bold whitespace-nowrap"
-                      >
-                        <Zap className="w-5 h-5 mr-2 text-white" />
-                        Request Quote
-                      </Button>
+                      <div>
+                        <h3 className="text-lg font-bold text-white">Need a New Quote?</h3>
+                        <p className="text-slate-400 text-sm">Choose from packages or request a custom solution</p>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
+                    <Button 
+                      onClick={() => setIsQuoteModalOpen(true)}
+                      className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white font-semibold px-6"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Request Quote
+                    </Button>
+                  </div>
+                </div>
 
-                <Card className="card-hover">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <FileText className="w-5 h-5 mr-2 text-primary" />
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-cyan-400" />
                       Your Quotes
-                    </CardTitle>
-                    <CardDescription>
-                      Manage all your quotes across stages
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                    </h3>
+                    <span className="text-sm text-slate-400">{quotes.length} total</span>
+                  </div>
+                  <div>
                     {quotes.length === 0 ? (
                       <div className="text-center py-12">
-                        <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No Quotes Yet</h3>
-                        <p className="text-muted-foreground mb-6">
+                        <div className="w-16 h-16 rounded-2xl bg-slate-700/50 flex items-center justify-center mx-auto mb-4">
+                          <FileText className="w-8 h-8 text-slate-500" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-white mb-2">No Quotes Yet</h3>
+                        <p className="text-slate-400 mb-6">
                           Start by requesting your first quote
                         </p>
-                        <Button className="btn-gradient" onClick={() => setIsQuoteModalOpen(true)}>
+                        <Button 
+                          className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white" 
+                          onClick={() => setIsQuoteModalOpen(true)}
+                        >
                           <Plus className="w-4 h-4 mr-2" />
                           Request New Quote
                         </Button>
@@ -2257,38 +2275,39 @@ export default function ClientDashboard() {
                           .map((quote, index) => (
                           <div
                             key={`quote-${quote.id || index}`}
-                            className="p-6 glass-card border border-neon-purple/20 rounded-lg hover:border-cyber-mint/50 transition-colors"
+                            className="p-4 lg:p-6 bg-slate-700/30 border border-slate-600/50 rounded-xl hover:border-cyan-500/30 transition-all duration-300"
                           >
-                            <div className="flex items-center justify-between mb-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                               <div>
-                                <h4 className="font-semibold text-lg text-silver-glow">Quote ID: {quote.id}</h4>
+                                <h4 className="font-semibold text-white">Quote #{(quote.quote_id || quote.id || '').toString().slice(-8)}</h4>
+                                <p className="text-sm text-slate-400">{new Date(quote.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                               </div>
-                              <div className="text-right">
-                                <div className="text-2xl font-bold text-cyber-mint">
+                              <div className="text-left sm:text-right">
+                                <div className="text-xl lg:text-2xl font-bold text-cyan-400">
                                   {formatCurrency(quote.estimatedCost)}
                                 </div>
-                                <div className="text-sm text-silver-glow/70">
-                                  Quoted Price • {quote.estimatedTimeline}
+                                <div className="text-sm text-slate-400">
+                                  {quote.estimatedTimeline || 'Timeline TBD'}
                                 </div>
                               </div>
                             </div>
                             
                             {/* Package and Features Information */}
                             {(quote.selectedPackage || (quote.selectedFeatures && quote.selectedFeatures.length > 0)) && (
-                              <div className="mb-4 p-4 bg-space-gray/20 rounded-lg border border-neon-purple/10">
+                              <div className="mb-4 p-3 lg:p-4 bg-slate-800/50 rounded-xl border border-slate-600/30">
                                 {quote.selectedPackage && (
                                   <div className="mb-3">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <h5 className="font-semibold text-cyber-mint flex items-center">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                      <h5 className="font-semibold text-cyan-400 flex items-center">
                                         <Package className="w-4 h-4 mr-2" />
                                         {quote.selectedPackage.name}
                                       </h5>
-                                      <span className="text-sm text-silver-glow/70">
+                                      <span className="text-xs text-slate-400">
                                         {quote.selectedPackage.category} • {quote.selectedPackage.deliveryTime}
                                       </span>
                                     </div>
                                     {quote.selectedPackage.complexity && (
-                                      <div className="text-xs text-neon-purple mb-2">
+                                      <div className="text-xs text-purple-400">
                                         Complexity: {quote.selectedPackage.complexity}
                                       </div>
                                     )}
@@ -2299,19 +2318,19 @@ export default function ClientDashboard() {
                                 {((quote.selectedPackage?.features && quote.selectedPackage.features.length > 0) || 
                                   (quote.selectedFeatures && quote.selectedFeatures.length > 0)) && (
                                   <div>
-                                    <h6 className="text-sm font-medium text-silver-glow mb-2">Included Features:</h6>
-                                    <div className="flex flex-wrap gap-2">
-                                      {(quote.selectedPackage?.features || quote.selectedFeatures || []).slice(0, 8).map((feature: any, idx: number) => (
+                                    <h6 className="text-xs font-medium text-slate-400 mb-2">Included Features:</h6>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {(quote.selectedPackage?.features || quote.selectedFeatures || []).slice(0, 6).map((feature: any, idx: number) => (
                                         <span
                                           key={idx}
-                                          className="px-2 py-1 bg-cosmic-blue/20 text-cosmic-blue text-xs rounded-md border border-cosmic-blue/30"
+                                          className="px-2 py-1 bg-cyan-500/10 text-cyan-400 text-xs rounded-lg border border-cyan-500/20"
                                         >
                                           {typeof feature === 'string' ? feature : feature?.name || 'Feature'}
                                         </span>
                                       ))}
-                                      {(quote.selectedPackage?.features || quote.selectedFeatures || []).length > 8 && (
-                                        <span className="px-2 py-1 bg-silver-glow/20 text-silver-glow text-xs rounded-md">
-                                          +{(quote.selectedPackage?.features || quote.selectedFeatures || []).length - 8} more
+                                      {(quote.selectedPackage?.features || quote.selectedFeatures || []).length > 6 && (
+                                        <span className="px-2 py-1 bg-slate-600/50 text-slate-400 text-xs rounded-lg">
+                                          +{(quote.selectedPackage?.features || quote.selectedFeatures || []).length - 6} more
                                         </span>
                                       )}
                                     </div>
@@ -2319,22 +2338,31 @@ export default function ClientDashboard() {
                                 )}
                               </div>
                             )}
-                            <div className="flex items-center justify-end">
+                            <div className="flex items-center justify-between">
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                quote.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
+                                quote.status === 'in_progress' ? 'bg-cyan-500/20 text-cyan-400' :
+                                quote.status === 'accepted' ? 'bg-purple-500/20 text-purple-400' :
+                                quote.status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
+                                'bg-slate-600/50 text-slate-400'
+                              }`}>
+                                {(quote.status || '').split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}
+                              </span>
                               <Button 
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => handleViewQuoteDetails(quote)}
-                                className="border-neon-purple/30 text-silver-glow hover:bg-white/5"
+                                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
                               >
                                 View Details
                               </Button>
-                              </div>
                             </div>
+                          </div>
                         ))}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
                 
               </div>
             )}
@@ -2342,17 +2370,15 @@ export default function ClientDashboard() {
             {/* Invoices Tab */}
             {activeTab === 'invoices' && (
               <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <CreditCard className="w-5 h-5 mr-2 text-primary" />
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-emerald-400" />
                       Your Invoices
-                    </CardTitle>
-                    <CardDescription>
-                      View and manage your payable invoices
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                    </h3>
+                    <span className="text-sm text-slate-400">View and pay your invoices</span>
+                  </div>
+                  <div>
                     {quotes.filter(q => ['quoted', 'accepted', 'approved'].includes(q.status)).length === 0 ? (
                       <div className="text-center py-12">
                         <CreditCard className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
@@ -2589,25 +2615,23 @@ export default function ClientDashboard() {
                         ))}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
             )}
 
             {/* Projects Tab */}
             {activeTab === 'projects' && (
               <div className="space-y-6">
-                <Card className="card-hover">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Briefcase className="w-5 h-5 mr-2 text-primary" />
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Briefcase className="w-5 h-5 text-cyan-400" />
                       Your Projects
-                    </CardTitle>
-                    <CardDescription>
-                      Track the progress of all your projects
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                    </h3>
+                    <span className="text-sm text-slate-400">Track progress on all your projects</span>
+                  </div>
+                  <div>
                     {(() => {
                       const projectQuotes = projects.length > 0
                         ? quotes.filter(q => projects.some((p: any) => p.quote_id === (q.id || (q as any).quote_id)))
@@ -2780,8 +2804,8 @@ export default function ClientDashboard() {
                         )}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -2791,132 +2815,116 @@ export default function ClientDashboard() {
 
             {/* Billing Tab */}
             {activeTab === 'billing' && (
-              <div className="space-y-8">
-                
-                
-
-                {/* How to Pay */}
-                <Card className="card-hover">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      Payment Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="bg-transparent rounded-lg p-4 border-2 border-cyan-200 shadow-sm">
-                      <h4 className="font-bold mb-4 text-lg text-cyan-700 flex items-center">
-                        <CreditCard className="w-5 h-5 mr-2" />
-                        Pay by Bank Transfer
-                      </h4>
-                      <p className="text-sm text-gray-600 mb-4">Use these details to pay via bank transfer:</p>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                          <span className="text-cyan-700 font-semibold">Currency</span>
-                          <span className="text-white font-medium">British Pound (GBP)</span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                          <span className="text-cyan-700 font-semibold">Account Name</span>
-                          <span className="text-white font-medium">Daniel James</span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                          <span className="text-cyan-700 font-semibold">Account Number</span>
-                          <span className="text-white font-medium font-mono">84726350</span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                          <span className="text-cyan-700 font-semibold">Sort Code</span>
-                          <span className="text-white font-medium font-mono">04-29-09</span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                          <span className="text-cyan-700 font-semibold">Bank</span>
-                          <span className="text-white font-medium">Revolut Ltd</span>
-                        </div>
-                        <div className="py-2 border-b border-gray-100">
-                          <div className="text-cyan-700 font-semibold mb-1">Bank Address</div>
-                          <div className="text-white font-medium text-sm">30 South Colonnade, E14 5HX, London, United Kingdom</div>
-                        </div>
-                        <div className="py-2">
-                          <div className="text-cyan-700 font-semibold mb-1">Reference</div>
-                          <div className="text-white font-medium font-mono bg-transparent px-2 py-1 rounded">Use your quote ID</div>
-                        </div>
+              <div className="space-y-6">
+                {/* Bank Transfer Details */}
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-6">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-6">
+                    <CreditCard className="w-5 h-5 text-emerald-400" />
+                    Bank Transfer Details
+                  </h3>
+                  
+                  <div className="bg-gradient-to-r from-cyan-500/10 to-emerald-500/10 border border-cyan-500/20 rounded-xl p-4 lg:p-6">
+                    <p className="text-sm text-slate-400 mb-4">Use these details to pay via bank transfer:</p>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+                        <span className="text-cyan-400 font-medium">Currency</span>
+                        <span className="text-white">British Pound (GBP)</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+                        <span className="text-cyan-400 font-medium">Account Name</span>
+                        <span className="text-white">Daniel James</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+                        <span className="text-cyan-400 font-medium">Account Number</span>
+                        <span className="text-white font-mono">84726350</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+                        <span className="text-cyan-400 font-medium">Sort Code</span>
+                        <span className="text-white font-mono">04-29-09</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+                        <span className="text-cyan-400 font-medium">Bank</span>
+                        <span className="text-white">Revolut Ltd</span>
+                      </div>
+                      <div className="py-2 border-b border-slate-700/50">
+                        <div className="text-cyan-400 font-medium mb-1">Bank Address</div>
+                        <div className="text-slate-300 text-sm">30 South Colonnade, E14 5HX, London, United Kingdom</div>
+                      </div>
+                      <div className="py-2">
+                        <div className="text-cyan-400 font-medium mb-1">Reference</div>
+                        <div className="text-white font-mono bg-slate-700/50 px-3 py-2 rounded-lg inline-block">Use your quote ID</div>
                       </div>
                     </div>
+                  </div>
+                </div>
 
-                    <div className="p-4 border border-border rounded-lg">
-                      <h4 className="font-medium mb-1">PayPal Checkout</h4>
-                      {!paypalClientId ? (
-                        <div className="mt-1 p-3 border border-yellow-300 bg-yellow-50 rounded text-yellow-800">
-                          PayPal checkout is not configured yet. It will be available once credentials are added.
-                          <div className="mt-2">
-                            <Button disabled className="opacity-60 cursor-not-allowed">Pay with PayPal</Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mt-1">
-                          <div id="paypal-buttons-billing" />
-                        </div>
-                      )}
+                {/* PayPal Section */}
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4">PayPal Checkout</h3>
+                  {!paypalClientId ? (
+                    <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                      <p className="text-amber-400 text-sm">PayPal checkout is not configured yet. It will be available once credentials are added.</p>
+                      <Button disabled className="mt-3 opacity-50 cursor-not-allowed bg-slate-700 text-slate-400">
+                        Pay with PayPal
+                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                  ) : (
+                    <div id="paypal-buttons-billing" />
+                  )}
+                </div>
               </div>
             )}
 
             {/* Settings Tab */}
             {activeTab === 'settings' && (
               <div className="max-w-2xl mx-auto space-y-6">
-                <Card className="card-hover">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Settings className="w-5 h-5 mr-2 text-primary" />
-                      Account Settings
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-6">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-6">
+                    <Settings className="w-5 h-5 text-purple-400" />
+                    Account Settings
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-slate-700/30 border border-slate-600/50 rounded-xl">
                       <div>
-                        <h4 className="font-medium">Email Notifications</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Receive updates about your projects
-                        </p>
+                        <h4 className="font-medium text-white">Email Notifications</h4>
+                        <p className="text-sm text-slate-400">Receive updates about your projects</p>
                       </div>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-700">
                         Configure
                       </Button>
                     </div>
                     
-                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                    <div className="flex items-center justify-between p-4 bg-slate-700/30 border border-slate-600/50 rounded-xl">
                       <div>
-                        <h4 className="font-medium">Two-Factor Authentication</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Add an extra layer of security
-                        </p>
+                        <h4 className="font-medium text-white">Two-Factor Authentication</h4>
+                        <p className="text-sm text-slate-400">Add an extra layer of security</p>
                       </div>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-700">
                         <Shield className="w-4 h-4 mr-2" />
                         Enable
                       </Button>
                     </div>
                     
-                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                    <div className="flex items-center justify-between p-4 bg-slate-700/30 border border-slate-600/50 rounded-xl">
                       <div>
-                        <h4 className="font-medium">Export Data</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Download your account data
-                        </p>
+                        <h4 className="font-medium text-white">Export Data</h4>
+                        <p className="text-sm text-slate-400">Download your account data</p>
                       </div>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-700">
                         <Download className="w-4 h-4 mr-2" />
                         Export
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
             )}
 
             {/* Placeholder for other tabs */}
           </motion.div>
         </AnimatePresence>
+        </div>
       </div>
 
       {/* GitHub Repository Not Set Modal */}

@@ -26,9 +26,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Test database connection first
+    // Test database connection with timeout
     console.log('🔍 Testing database connection...')
-    const client = await getDatabase()
+    
+    // Create a timeout promise
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Database connection timeout')), 12000)
+    })
+    
+    // Race between database connection and timeout
+    const client = await Promise.race([
+      getDatabase(),
+      timeoutPromise
+    ])
     
     try {
       // Simple test query

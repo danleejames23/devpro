@@ -29,7 +29,7 @@ const Footer = () => {
       { label: 'About', href: '/about' },
       { label: 'Contact', href: '/contact' },
       { label: 'Get Quote', href: '/quote' },
-      { label: 'Client Portal', href: '/client' },
+      { label: 'Project Hub', href: '/client' },
     ],
     resources: [
       { label: 'Privacy Policy', href: '/privacy' },

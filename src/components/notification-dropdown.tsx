@@ -259,7 +259,7 @@ export default function NotificationDropdown({
                   className="w-full bg-primary hover:bg-primary/90 text-white text-xs"
                   onClick={() => window.location.href = '/client'}
                 >
-                  Client Portal
+                  Project Hub
                 </Button>
                 <Button
                   size="sm"

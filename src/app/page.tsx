@@ -238,14 +238,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Client Portal Section - Manage Your Project */}
+      {/* Project Hub Section - Manage Your Project */}
       <section className="py-16 border-t border-slate-800/50 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-cyan-500/5 pointer-events-none" />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20 mb-4">
-                Client Portal
+                Your Project Hub
               </span>
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 Manage Your Entire Project
@@ -254,7 +254,7 @@ export default function Home() {
                 </span>
               </h2>
               <p className="text-slate-400 mb-6">
-                No more endless email chains or confusing spreadsheets. My dedicated client portal 
+                No more endless email chains or confusing spreadsheets. Your dedicated project hub 
                 gives you complete visibility and control over your project from start to finish.
               </p>
               
@@ -284,7 +284,7 @@ export default function Home() {
                 href="/login"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-semibold rounded-xl border border-purple-500/30 transition-all"
               >
-                Access Client Portal
+                Access Project Hub
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>

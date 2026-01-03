@@ -223,7 +223,7 @@ export default function AdminLoginPage() {
                     <p className="text-sm text-muted-foreground mb-2">Client Access</p>
                     <Link href="/client" className="text-primary hover:underline text-sm font-medium">
                       <Users className="w-4 h-4 inline mr-1" />
-                      Client Portal
+                      Project Hub
                     </Link>
                   </div>
                 </CardContent>

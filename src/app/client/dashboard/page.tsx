@@ -1244,7 +1244,7 @@ export default function ClientDashboard() {
             </div>
             <div>
               <h1 className="font-bold text-white">Lumora Pro</h1>
-              <p className="text-xs text-slate-400">Client Portal</p>
+              <p className="text-xs text-slate-400">Your Project Hub</p>
             </div>
           </div>
         </div>

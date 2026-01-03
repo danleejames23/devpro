@@ -89,7 +89,7 @@ const Navigation = () => {
                   href="/client"
                   className="px-3 py-1.5 text-sm border border-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
                 >
-                  Client Portal
+                  Project Hub
                 </Link>
                 <button 
                   onClick={() => setIsQuoteModalOpen(true)}
@@ -153,7 +153,7 @@ const Navigation = () => {
                       onClick={() => setIsOpen(false)}
                       className="w-full inline-flex items-center justify-center px-4 py-2 border border-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
                     >
-                      Client Portal
+                      Project Hub
                     </Link>
                     <button 
                       onClick={() => { setIsQuoteModalOpen(true); setIsOpen(false); }}

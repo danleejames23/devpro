@@ -188,7 +188,7 @@ export default function ContactPage() {
                   <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full animate-pulse">Live</span>
                 </h3>
                 <p className="text-slate-400 text-sm">
-                  Register for the <span className="text-white font-medium">Client Portal</span> to access live chat with me directly. 
+                  Register for <span className="text-white font-medium">Your Project Hub</span> to access live chat with me directly. 
                   Get instant answers, real-time project updates, and direct communication throughout your project.
                 </p>
               </div>

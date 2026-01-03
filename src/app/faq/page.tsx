@@ -41,7 +41,7 @@ export default function FAQPage() {
         {
           id: 'communication',
           question: 'How do you communicate during projects?',
-          answer: 'We provide a dedicated client portal where you can track progress, view files, and communicate with our team. We also use email, video calls, and instant messaging as needed. You\'ll receive regular updates and can reach us during business hours.'
+          answer: 'I provide a dedicated project hub where you can track progress, view files, and communicate directly with me. I also use email, video calls, and instant messaging as needed. You\'ll receive regular updates and can reach me during business hours.'
         }
       ]
     },
@@ -104,7 +104,7 @@ export default function FAQPage() {
         {
           id: 'project-updates',
           question: 'How often will I receive project updates?',
-          answer: 'You\'ll receive weekly progress updates via email and can check real-time progress in your client portal. For larger projects, we schedule bi-weekly video calls. You can also contact us anytime for specific questions or concerns.'
+          answer: 'You\'ll receive weekly progress updates via email and can check real-time progress in your project hub. For larger projects, I schedule bi-weekly video calls. You can also contact me anytime for specific questions or concerns.'
         },
         {
           id: 'revisions-included',

@@ -275,7 +275,7 @@ export default function ServicesPage() {
             {[
               { step: '01', icon: MessageSquare, title: 'Discuss', description: 'Share your vision, goals, and requirements. I listen and understand your needs.', color: 'from-cyan-500 to-blue-600' },
               { step: '02', icon: FileText, title: 'Quote', description: 'Receive a detailed proposal with fixed pricing, timeline, and deliverables.', color: 'from-purple-500 to-pink-600' },
-              { step: '03', icon: Code, title: 'Build', description: 'I develop your project with regular updates. Track progress in your client portal.', color: 'from-orange-500 to-red-600' },
+              { step: '03', icon: Code, title: 'Build', description: 'I develop your project with regular updates. Track progress in your project hub.', color: 'from-orange-500 to-red-600' },
               { step: '04', icon: Rocket, title: 'Launch', description: 'Go live with confidence. I provide ongoing support and maintenance.', color: 'from-green-500 to-emerald-600' }
             ].map((item, index) => (
               <div key={item.step} className="group text-center relative">

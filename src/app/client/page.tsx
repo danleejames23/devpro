@@ -168,7 +168,7 @@ export default function ClientPortalPage() {
                   <CardDescription>
                     {isLogin 
                       ? 'Sign in to access your project dashboard' 
-                      : 'Join our client portal to manage your projects'
+                      : 'Join your project hub to manage your projects'
                     }
                   </CardDescription>
                 </CardHeader>
@@ -365,9 +365,9 @@ export default function ClientPortalPage() {
               className="space-y-6"
             >
               <div>
-                <h2 className="text-2xl font-bold text-foreground mb-4">Client Portal Features</h2>
+                <h2 className="text-2xl font-bold text-foreground mb-4">Project Hub Features</h2>
                 <p className="text-muted-foreground mb-6">
-                  Get full visibility and control over your projects with our comprehensive client portal.
+                  Get full visibility and control over your projects with your dedicated project hub.
                 </p>
               </div>
 
@@ -425,7 +425,7 @@ export default function ClientPortalPage() {
                   <Users className="w-12 h-12 mx-auto mb-4 opacity-90" />
                   <h3 className="text-lg font-semibold mb-2">Need Help?</h3>
                   <p className="text-sm opacity-90 mb-4">
-                    Our support team is here to help you get the most out of your client portal.
+                    I'm here to help you get the most out of your project hub.
                   </p>
                   <Button variant="secondary" size="sm" asChild>
                     <Link href="/contact">Contact Support</Link>

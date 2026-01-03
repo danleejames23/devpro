@@ -131,7 +131,7 @@ export default function ServicesPage() {
               </div>
               <div className="flex items-center justify-between pt-4 border-t border-slate-700/50">
                 <span className="text-green-400 font-semibold">£299–£799</span>
-                <Link href="/custom-quote" className="text-sm text-slate-400 hover:text-white flex items-center gap-1">
+                <Link href="/quote" className="text-sm text-slate-400 hover:text-white flex items-center gap-1">
                   Get Quote <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
@@ -154,7 +154,7 @@ export default function ServicesPage() {
               </div>
               <div className="flex items-center justify-between pt-4 border-t border-slate-700/50">
                 <span className="text-green-400 font-semibold">From £149</span>
-                <Link href="/custom-quote" className="text-sm text-slate-400 hover:text-white flex items-center gap-1">
+                <Link href="/quote" className="text-sm text-slate-400 hover:text-white flex items-center gap-1">
                   Get Quote <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
@@ -177,7 +177,7 @@ export default function ServicesPage() {
               </div>
               <div className="flex items-center justify-between pt-4 border-t border-slate-700/50">
                 <span className="text-green-400 font-semibold">From £249</span>
-                <Link href="/custom-quote" className="text-sm text-slate-400 hover:text-white flex items-center gap-1">
+                <Link href="/quote" className="text-sm text-slate-400 hover:text-white flex items-center gap-1">
                   Get Quote <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>

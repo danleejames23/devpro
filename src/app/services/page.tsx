@@ -24,15 +24,15 @@ export default function ServicesPage() {
             </div>
 
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
-              Websites, Shopify &
+              Web Development &
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500">
-                Custom Development
+                Digital Solutions
               </span>
             </h1>
 
             <p className="text-lg text-slate-400 max-w-2xl mx-auto mb-6">
-              Fixed pricing, fast delivery, and direct communication throughout. 
-              I specialise in Shopify stores and conversion-focused websites.
+              Professional web development services with transparent pricing and fast delivery. 
+              From landing pages to mobile apps and custom AI applications.
             </p>
 
             <div className="flex flex-wrap justify-center gap-4 md:gap-6 mb-6">

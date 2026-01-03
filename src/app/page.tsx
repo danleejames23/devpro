@@ -22,16 +22,15 @@ export default function Home() {
             </div>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-              Fast, Conversion-Focused
+              Build Digital Products
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500">
-                Websites & Shopify Stores
+                That Drive Growth
               </span>
             </h1>
 
             <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto mb-8">
-              I build websites and Shopify stores that actually convert. Fixed pricing, 
-              fast delivery, and direct communication with me throughout your project. 
-              No agency fluff—just real results for your business.
+              From stunning websites to powerful mobile apps, Shopify stores, and custom SaaS platforms. 
+              I handle everything from design to deployment, with fixed pricing and direct communication throughout.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
@@ -91,9 +90,9 @@ export default function Home() {
             <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 mb-4">
               Full-Stack Development
             </span>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Core Services</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">What I Build</h2>
             <p className="text-slate-400 max-w-2xl mx-auto">
-              I build websites, web apps, and integrate AI solutions for businesses.
+              From websites to mobile apps and AI solutions—complete digital solutions tailored to your business needs.
             </p>
           </div>
 
@@ -108,12 +107,12 @@ export default function Home() {
                 color: 'from-cyan-500 to-blue-600'
               },
               { 
-                icon: Bot, 
-                title: 'AI & Automation', 
-                desc: 'Intelligent chatbots, AI assistants, and workflow automation to streamline your business.',
-                features: ['Custom Chatbots', 'Process Automation', 'Data Analysis'],
-                price: 'From £299',
-                color: 'from-blue-500 to-indigo-600'
+                icon: Smartphone, 
+                title: 'Mobile Applications', 
+                desc: 'Native and cross-platform mobile apps for iOS and Android. Intuitive UX that users love.',
+                features: ['iOS & Android', 'Push Notifications', 'Offline Support'],
+                price: 'From £1,999',
+                color: 'from-purple-500 to-pink-600'
               },
               { 
                 icon: Code, 
@@ -122,6 +121,30 @@ export default function Home() {
                 features: ['Custom Features', 'Database Design', 'API Development'],
                 price: 'From £999',
                 color: 'from-pink-500 to-rose-600'
+              },
+              { 
+                icon: Layers, 
+                title: 'SaaS Platforms', 
+                desc: 'Custom software-as-a-service solutions with user management, billing, and scalable architecture.',
+                features: ['Multi-tenant', 'Subscription Billing', 'API Integration'],
+                price: 'From £4,999',
+                color: 'from-orange-500 to-red-600'
+              },
+              { 
+                icon: Bot, 
+                title: 'AI & Automation', 
+                desc: 'Intelligent chatbots, AI assistants, and workflow automation to streamline your business.',
+                features: ['Custom Chatbots', 'Process Automation', 'Data Analysis'],
+                price: 'From £299',
+                color: 'from-blue-500 to-indigo-600'
+              },
+              { 
+                icon: Database, 
+                title: 'E-Commerce Stores', 
+                desc: 'Full-featured online stores with payment processing, inventory management, and order tracking.',
+                features: ['Payment Gateway', 'Inventory System', 'Order Management'],
+                price: 'From £549',
+                color: 'from-green-500 to-emerald-600'
               },
             ].map((service) => (
               <div

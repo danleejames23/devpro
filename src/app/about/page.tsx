@@ -51,9 +51,9 @@ export default function AboutPage() {
               </h1>
 
               <p className="text-lg text-slate-400 mb-8 leading-relaxed">
-                I&apos;m a full-stack developer specialising in websites and Shopify stores. With over 13 years of experience, 
-                I help small businesses and founders build digital products that actually convert. No agency overhead, 
-                just direct communication and quality work.
+                I&apos;m a full-stack developer building websites, mobile apps, Shopify stores, and custom web applications. 
+                With over 13 years of experience, I help small businesses and founders build digital products that actually convert. 
+                No agency overhead, just direct communication and quality work.
               </p>
 
               <div className="flex flex-wrap gap-3 mb-8">

@@ -737,6 +737,81 @@ export default function ClientDashboard() {
     setIsQuoteDetailsOpen(true)
   }
 
+  // Handle accepting a custom quote - creates project and quote
+  const handleAcceptCustomQuote = async (customQuote: any) => {
+    try {
+      const response = await fetch('/api/custom-quotes/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customQuoteId: customQuote.id })
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        showSuccessNotification(
+          'Quote Accepted!',
+          'Your project has been created and will begin shortly.'
+        )
+        // Refresh data
+        if (customer) {
+          const [quotesRes, customQuotesRes] = await Promise.all([
+            fetch(`/api/quotes?customerId=${customer.id}`),
+            fetch(`/api/custom-quotes?customerId=${customer.id}`)
+          ])
+          if (quotesRes.ok) {
+            const quotesData = await quotesRes.json()
+            setQuotes(quotesData.quotes || [])
+          }
+          if (customQuotesRes.ok) {
+            const customQuotesData = await customQuotesRes.json()
+            setCustomQuotes(customQuotesData.customQuotes || [])
+          }
+        }
+      } else {
+        alert(result.error || 'Failed to accept quote')
+      }
+    } catch (error) {
+      console.error('Error accepting custom quote:', error)
+      alert('An error occurred. Please try again.')
+    }
+  }
+
+  // Handle declining a custom quote
+  const handleDeclineCustomQuote = async (customQuote: any) => {
+    if (!confirm('Are you sure you want to decline this quote?')) return
+    
+    try {
+      const response = await fetch('/api/custom-quotes/decline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customQuoteId: customQuote.id })
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        showSuccessNotification(
+          'Quote Declined',
+          'The quote has been declined. Feel free to request a new quote anytime.'
+        )
+        // Refresh custom quotes
+        if (customer) {
+          const customQuotesRes = await fetch(`/api/custom-quotes?customerId=${customer.id}`)
+          if (customQuotesRes.ok) {
+            const customQuotesData = await customQuotesRes.json()
+            setCustomQuotes(customQuotesData.customQuotes || [])
+          }
+        }
+      } else {
+        alert(result.error || 'Failed to decline quote')
+      }
+    } catch (error) {
+      console.error('Error declining custom quote:', error)
+      alert('An error occurred. Please try again.')
+    }
+  }
+
   const handleCancelQuote = (quoteId: string) => {
     console.log('Setting up cancel for quote:', quoteId)
     
@@ -2255,6 +2330,132 @@ export default function ClientDashboard() {
                   </div>
                 </div>
 
+                {/* Custom Quote Requests Section - Show First */}
+                {customQuotes.length > 0 && (
+                  <div className="bg-slate-800/50 backdrop-blur-sm border border-orange-500/30 rounded-2xl p-4 lg:p-6 mb-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <Star className="w-5 h-5 text-orange-400" />
+                        Custom Quote Requests
+                      </h3>
+                      <span className="text-sm text-slate-400">{customQuotes.length} request{customQuotes.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="space-y-4">
+                      {customQuotes
+                        .slice()
+                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                        .map((cq, index) => (
+                        <div
+                          key={`custom-quote-${cq.id || index}`}
+                          className="p-4 lg:p-6 bg-gradient-to-r from-orange-500/10 to-pink-500/10 border border-orange-500/30 rounded-xl"
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
+                            <div>
+                              <h4 className="font-semibold text-white">{cq.project_title}</h4>
+                              <p className="text-sm text-slate-400">
+                                {new Date(cq.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </p>
+                            </div>
+                            <Badge className={
+                              cq.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                              cq.status === 'reviewing' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                              cq.status === 'quoted' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' :
+                              cq.status === 'approved' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                              cq.status === 'rejected' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                              'bg-purple-500/20 text-purple-400 border-purple-500/30'
+                            }>
+                              {cq.status === 'pending' ? 'Awaiting Review' :
+                               cq.status === 'reviewing' ? 'Under Review' :
+                               cq.status === 'quoted' ? 'Quote Ready' :
+                               cq.status === 'approved' ? 'Approved' :
+                               cq.status === 'rejected' ? 'Rejected' :
+                               cq.status.charAt(0).toUpperCase() + cq.status.slice(1)}
+                            </Badge>
+                          </div>
+                          
+                          <p className="text-sm text-slate-300 mb-4 line-clamp-2">{cq.project_description}</p>
+                          
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            <span className="px-2 py-1 bg-slate-700/50 text-slate-300 text-xs rounded-full">
+                              {cq.project_type?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                            </span>
+                            {cq.budget_range && (
+                              <span className="px-2 py-1 bg-slate-700/50 text-slate-300 text-xs rounded-full">
+                                Budget: £{cq.budget_range.replace('-', ' - £').replace('+', '+')}
+                              </span>
+                            )}
+                            {cq.preferred_timeline && (
+                              <span className="px-2 py-1 bg-slate-700/50 text-slate-300 text-xs rounded-full">
+                                {cq.preferred_timeline.replace(/-/g, ' ')}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Show quoted price and accept/decline buttons when status is 'quoted' */}
+                          {cq.status === 'quoted' && cq.quoted_price && (
+                            <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-purple-400 font-medium">Your Quote is Ready!</span>
+                                <span className="text-2xl font-bold text-purple-400">£{Number(cq.quoted_price).toLocaleString()}</span>
+                              </div>
+                              {cq.quoted_timeline && (
+                                <p className="text-sm text-slate-400 mb-4">Estimated Timeline: {cq.quoted_timeline}</p>
+                              )}
+                              {cq.admin_notes && (
+                                <p className="text-sm text-slate-300 mb-4 p-3 bg-slate-800/50 rounded-lg">{cq.admin_notes}</p>
+                              )}
+                              <div className="flex gap-3">
+                                <Button 
+                                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+                                  onClick={() => handleAcceptCustomQuote(cq)}
+                                >
+                                  <Check className="w-4 h-4 mr-2" />
+                                  Accept Quote
+                                </Button>
+                                <Button 
+                                  variant="outline"
+                                  className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
+                                  onClick={() => handleDeclineCustomQuote(cq)}
+                                >
+                                  <X className="w-4 h-4 mr-2" />
+                                  Decline
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
+                          {cq.status === 'approved' && cq.quoted_price && (
+                            <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <span className="text-green-400 font-medium">Accepted - Project Started!</span>
+                                <span className="text-xl font-bold text-green-400">£{Number(cq.quoted_price).toLocaleString()}</span>
+                              </div>
+                              {cq.quoted_timeline && (
+                                <p className="text-sm text-slate-400 mt-1">Timeline: {cq.quoted_timeline}</p>
+                              )}
+                            </div>
+                          )}
+
+                          {cq.status === 'pending' && (
+                            <div className="flex items-center gap-2 text-sm text-yellow-400">
+                              <Clock className="w-4 h-4" />
+                              <span>Our team will review your request within 24-48 hours</span>
+                            </div>
+                          )}
+
+                          {cq.status === 'rejected' && (
+                            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                              <p className="text-red-400 text-sm">This request was declined. Please contact us for more information.</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Standard Quotes Section - Only show if user has quotes OR no custom quotes */}
+                {(quotes.length > 0 || customQuotes.length === 0) && (
                 <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 lg:p-6">
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -2377,88 +2578,6 @@ export default function ClientDashboard() {
                     )}
                   </div>
                 </div>
-
-                {/* Custom Quote Requests Section */}
-                {customQuotes.length > 0 && (
-                  <div className="bg-slate-800/50 backdrop-blur-sm border border-orange-500/30 rounded-2xl p-4 lg:p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                        <Star className="w-5 h-5 text-orange-400" />
-                        Custom Quote Requests
-                      </h3>
-                      <span className="text-sm text-slate-400">{customQuotes.length} request{customQuotes.length !== 1 ? 's' : ''}</span>
-                    </div>
-                    <div className="space-y-4">
-                      {customQuotes
-                        .slice()
-                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                        .map((cq, index) => (
-                        <div
-                          key={`custom-quote-${cq.id || index}`}
-                          className="p-4 lg:p-6 bg-gradient-to-r from-orange-500/10 to-pink-500/10 border border-orange-500/30 rounded-xl"
-                        >
-                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
-                            <div>
-                              <h4 className="font-semibold text-white">{cq.project_title}</h4>
-                              <p className="text-sm text-slate-400">
-                                {new Date(cq.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                              </p>
-                            </div>
-                            <Badge className={
-                              cq.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
-                              cq.status === 'reviewing' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
-                              cq.status === 'approved' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                              cq.status === 'rejected' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
-                              'bg-purple-500/20 text-purple-400 border-purple-500/30'
-                            }>
-                              {cq.status === 'pending' ? 'Awaiting Review' :
-                               cq.status === 'reviewing' ? 'Under Review' :
-                               cq.status === 'approved' ? 'Approved' :
-                               cq.status === 'rejected' ? 'Rejected' :
-                               cq.status.charAt(0).toUpperCase() + cq.status.slice(1)}
-                            </Badge>
-                          </div>
-                          
-                          <p className="text-sm text-slate-300 mb-4 line-clamp-2">{cq.project_description}</p>
-                          
-                          <div className="flex flex-wrap gap-2 mb-4">
-                            <span className="px-2 py-1 bg-slate-700/50 text-slate-300 text-xs rounded-full">
-                              {cq.project_type?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                            </span>
-                            {cq.budget_range && (
-                              <span className="px-2 py-1 bg-slate-700/50 text-slate-300 text-xs rounded-full">
-                                Budget: £{cq.budget_range.replace('-', ' - £').replace('+', '+')}
-                              </span>
-                            )}
-                            {cq.preferred_timeline && (
-                              <span className="px-2 py-1 bg-slate-700/50 text-slate-300 text-xs rounded-full">
-                                {cq.preferred_timeline.replace(/-/g, ' ')}
-                              </span>
-                            )}
-                          </div>
-
-                          {cq.status === 'approved' && cq.quoted_price && (
-                            <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                              <div className="flex items-center justify-between">
-                                <span className="text-green-400 font-medium">Quoted Price:</span>
-                                <span className="text-xl font-bold text-green-400">£{cq.quoted_price.toLocaleString()}</span>
-                              </div>
-                              {cq.quoted_timeline && (
-                                <p className="text-sm text-slate-400 mt-1">Timeline: {cq.quoted_timeline}</p>
-                              )}
-                            </div>
-                          )}
-
-                          {cq.status === 'pending' && (
-                            <div className="flex items-center gap-2 text-sm text-yellow-400">
-                              <Clock className="w-4 h-4" />
-                              <span>Our team will review your request within 24-48 hours</span>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                 )}
                 
               </div>

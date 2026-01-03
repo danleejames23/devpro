@@ -196,8 +196,15 @@ export async function PATCH(request: NextRequest) {
       // Notify customer of status change
       if (customQuote.customer_id && status) {
         let notificationMessage = ''
+        let notificationType = 'quote_update'
+        let notificationTitle = 'Quote Request Update'
+        
         if (status === 'reviewing') {
           notificationMessage = `Your custom quote request for "${customQuote.project_title}" is now being reviewed.`
+        } else if (status === 'quoted') {
+          notificationType = 'quote_ready'
+          notificationTitle = 'Your Quote is Ready!'
+          notificationMessage = `Great news! Your custom quote for "${customQuote.project_title}" is ready. The quoted price is £${quotedPrice}. Please log in to review and accept.`
         } else if (status === 'rejected') {
           notificationMessage = `Unfortunately, we are unable to proceed with your custom quote request for "${customQuote.project_title}". ${adminNotes || ''}`
         }
@@ -205,8 +212,8 @@ export async function PATCH(request: NextRequest) {
         if (notificationMessage) {
           await client.query(
             `INSERT INTO notifications (customer_id, type, title, message)
-             VALUES ($1, 'quote_update', 'Quote Request Update', $2)`,
-            [customQuote.customer_id, notificationMessage]
+             VALUES ($1, $2, $3, $4)`,
+            [customQuote.customer_id, notificationType, notificationTitle, notificationMessage]
           )
         }
       }

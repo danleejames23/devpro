@@ -75,6 +75,17 @@ export async function POST(request: NextRequest) {
       customerId = newUser.rows[0].id
     }
 
+    // Helper function to ensure array format for PostgreSQL
+    const toArray = (value: any): string[] => {
+      if (!value) return []
+      if (Array.isArray(value)) return value
+      if (typeof value === 'string') {
+        // Split by comma, newline, or semicolon and trim whitespace
+        return value.split(/[,;\n]+/).map((s: string) => s.trim()).filter((s: string) => s.length > 0)
+      }
+      return []
+    }
+
     // Insert custom quote request
     const result = await client.query(
       `INSERT INTO custom_quotes (
@@ -111,8 +122,8 @@ export async function POST(request: NextRequest) {
         projectType,
         projectTitle,
         projectDescription,
-        features || [],
-        integrations || [],
+        toArray(features),
+        toArray(integrations),
         targetAudience || null,
         competitors || null,
         preferredTechStack || null,

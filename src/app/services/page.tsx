@@ -1,10 +1,107 @@
+'use client'
+
 import { services } from '@/data/services'
-import { Check, ArrowRight, Clock, Shield, Bot, Code, Smartphone, Palette, Server, Brain, Target, Globe, Paintbrush, Zap, Sparkles, Star, Users } from 'lucide-react'
+import { Check, ArrowRight, Clock, Shield, Bot, Code, Smartphone, Palette, Server, Brain, Target, Globe, Paintbrush, Zap, Sparkles, Star, Users, X } from 'lucide-react'
 import Link from 'next/link'
+import { useState, useEffect } from 'react'
 
 export default function ServicesPage() {
+  const [showPopup, setShowPopup] = useState(false)
+
+  useEffect(() => {
+    // Show popup after a short delay when page loads
+    const timer = setTimeout(() => {
+      setShowPopup(true)
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [])
+
   return (
     <main className="pt-16 min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 overflow-hidden">
+      {/* Custom Projects Popup Modal */}
+      {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setShowPopup(false)}
+          />
+          
+          {/* Modal */}
+          <div className="relative w-full max-w-lg animate-in fade-in zoom-in duration-300">
+            <div className="relative bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/50 rounded-3xl p-8 shadow-2xl shadow-orange-500/10">
+              {/* Close Button */}
+              <button
+                onClick={() => setShowPopup(false)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-700/50 hover:bg-slate-600 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* Glow Effect */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-orange-500/20 to-pink-500/20 rounded-3xl blur-xl opacity-50" />
+              
+              <div className="relative">
+                {/* Header */}
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-500/30">
+                    <Sparkles className="w-8 h-8 text-white" />
+                  </div>
+                  <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20 mb-3">
+                    Enterprise & Custom Projects
+                  </span>
+                  <h3 className="text-2xl font-bold text-white mb-2">Need a Bigger Project?</h3>
+                  <p className="text-slate-400">
+                    Get a custom quote tailored to your specific requirements
+                  </p>
+                </div>
+
+                {/* Features */}
+                <div className="space-y-3 mb-6">
+                  {[
+                    'Multi-platform & Enterprise Applications',
+                    'AI/ML Powered Solutions',
+                    'Flexible Payment Plans',
+                    'Dedicated Support & Maintenance',
+                  ].map((feature, idx) => (
+                    <div key={idx} className="flex items-center gap-3 text-slate-300">
+                      <div className="w-5 h-5 rounded-full bg-gradient-to-br from-orange-500 to-pink-600 flex items-center justify-center flex-shrink-0">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                      <span className="text-sm">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Price */}
+                <div className="text-center py-4 mb-6 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                  <div className="text-slate-400 text-sm mb-1">Starting from</div>
+                  <div className="text-3xl font-bold text-white">£2,500+</div>
+                  <div className="text-xs text-slate-500">Based on project scope</div>
+                </div>
+
+                {/* CTA Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link 
+                    href="/contact"
+                    className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-400 hover:to-pink-500 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40"
+                    onClick={() => setShowPopup(false)}
+                  >
+                    Get Custom Quote
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                  <button
+                    onClick={() => setShowPopup(false)}
+                    className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-slate-700/50 hover:bg-slate-600/50 text-white font-medium rounded-xl transition-colors border border-slate-600/50"
+                  >
+                    View Services
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Hero Section */}
       <section className="relative py-20 lg:py-28">
         {/* Animated Background Elements */}

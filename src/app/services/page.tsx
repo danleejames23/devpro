@@ -76,14 +76,14 @@ export default function ServicesPage() {
                 {/* Price */}
                 <div className="text-center py-4 mb-6 bg-slate-800/50 rounded-xl border border-slate-700/50">
                   <div className="text-slate-400 text-sm mb-1">Starting from</div>
-                  <div className="text-3xl font-bold text-white">£2,500+</div>
+                  <div className="text-3xl font-bold text-white">£1,500+</div>
                   <div className="text-xs text-slate-500">Based on project scope</div>
                 </div>
 
                 {/* CTA Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Link 
-                    href="/contact"
+                    href="/custom-quote"
                     className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-400 hover:to-pink-500 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40"
                     onClick={() => setShowPopup(false)}
                   >
@@ -103,7 +103,7 @@ export default function ServicesPage() {
         </div>
       )}
       {/* Hero Section */}
-      <section className="relative py-20 lg:py-28">
+      <section className="relative py-12 lg:py-16">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
@@ -293,10 +293,10 @@ export default function ServicesPage() {
                 ))}
               </ul>
               <Link 
-                href="/contact"
+                href="/custom-quote"
                 className="group inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-400 hover:to-pink-500 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 hover:scale-105"
               >
-                Discuss Your Project
+                Get Custom Quote
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
@@ -331,7 +331,7 @@ export default function ServicesPage() {
                 
                 <div className="text-center pt-6 border-t border-slate-700/50">
                   <div className="text-slate-400 mb-2">Starting from</div>
-                  <div className="text-4xl font-bold text-white mb-1">£2,500+</div>
+                  <div className="text-4xl font-bold text-white mb-1">£1,500+</div>
                   <div className="text-sm text-slate-500">Based on project scope</div>
                 </div>
               </div>

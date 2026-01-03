@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { 
   BarChart3, Users, FileText, MessageSquare, Settings, LogOut, 
   Activity, Briefcase, CreditCard, DollarSign, Mail, Code,
-  Menu, X
+  Menu, X, Sparkles
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -15,6 +15,7 @@ interface SidebarProps {
   onLogout: () => void
   unreadMessages?: number
   pendingQuotes?: number
+  pendingCustomQuotes?: number
   newInquiries?: number
   admin?: { username?: string } | null
 }
@@ -22,6 +23,7 @@ interface SidebarProps {
 const sidebarItems = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
   { id: 'quotes', label: 'Quotes', icon: FileText, badge: 'pendingQuotes' },
+  { id: 'custom-quotes', label: 'Custom Quotes', icon: Sparkles, badge: 'pendingCustomQuotes' },
   { id: 'projects', label: 'Projects', icon: Briefcase },
   { id: 'customers', label: 'Clients', icon: Users },
   { id: 'inquiries', label: 'Inquiries', icon: Mail, badge: 'newInquiries' },
@@ -37,6 +39,7 @@ export default function FuturisticSidebar({
   onLogout, 
   unreadMessages = 0, 
   pendingQuotes = 0,
+  pendingCustomQuotes = 0,
   newInquiries = 0,
   admin = null
 }: SidebarProps) {
@@ -63,6 +66,7 @@ export default function FuturisticSidebar({
   const getBadgeCount = (badgeType: string) => {
     if (badgeType === 'unreadMessages') return unreadMessages
     if (badgeType === 'pendingQuotes') return pendingQuotes
+    if (badgeType === 'pendingCustomQuotes') return pendingCustomQuotes
     if (badgeType === 'newInquiries') return newInquiries
     return 0
   }

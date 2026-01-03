@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import FuturisticSidebar from '@/components/admin/futuristic-sidebar'
 import FuturisticStats from '@/components/admin/futuristic-stats'
 import AdminChatWidget from '@/components/admin/chat-widget'
+import CustomQuotesTab from '@/components/admin/custom-quotes-tab'
 import { useNotificationPopup } from '@/components/notification-popup'
 import { formatCurrency } from '@/lib/utils'
 import ConfirmDialog from '@/components/confirm-dialog'
@@ -1646,6 +1647,7 @@ export default function AdvancedAdminDashboard() {
         onLogout={handleLogout}
         unreadMessages={stats.unreadMessages}
         pendingQuotes={stats.pendingQuotes}
+        pendingCustomQuotes={stats.pendingCustomQuotes || 0}
         newInquiries={stats.unreadInquiries}
         admin={admin}
       />
@@ -1663,6 +1665,7 @@ export default function AdvancedAdminDashboard() {
               <h1 className="text-2xl lg:text-3xl font-bold text-white">
                 {activeTab === 'overview' && `Welcome back, ${admin?.username || 'Admin'}!`}
                 {activeTab === 'quotes' && 'Quote Management'}
+                {activeTab === 'custom-quotes' && 'Custom Quote Requests'}
                 {activeTab === 'projects' && 'Project Management'}
                 {activeTab === 'customers' && 'Client Management'}
                 {activeTab === 'inquiries' && 'Inquiries'}
@@ -1674,6 +1677,7 @@ export default function AdvancedAdminDashboard() {
               <p className="text-slate-400 mt-1 text-sm lg:text-base">
                 {activeTab === 'overview' && 'Here\'s your business overview'}
                 {activeTab === 'quotes' && 'Manage and respond to client quote requests'}
+                {activeTab === 'custom-quotes' && 'Review and approve enterprise project requests'}
                 {activeTab === 'projects' && 'Track and manage active projects'}
                 {activeTab === 'customers' && 'View and manage your clients'}
                 {activeTab === 'inquiries' && 'Handle incoming inquiries'}
@@ -2232,6 +2236,15 @@ export default function AdvancedAdminDashboard() {
                     </div>
                   </div>
                 </div>
+              )}
+
+              {activeTab === 'custom-quotes' && (
+                <CustomQuotesTab
+                  showSuccess={showSuccess}
+                  showError={showError}
+                  showLoading={showLoading}
+                  hideNotification={hideNotification}
+                />
               )}
 
               {activeTab === 'inquiries' && (

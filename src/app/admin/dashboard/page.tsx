@@ -823,6 +823,7 @@ export default function AdvancedAdminDashboard() {
     return {
       totalQuotes,
       pendingQuotes,
+      pendingCustomQuotes: 0, // Will be populated when custom quotes are loaded
       activeProjects,
       completedProjects,
       totalRevenue,

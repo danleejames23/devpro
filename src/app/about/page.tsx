@@ -1,9 +1,3 @@
-'use client'
-
-import { motion } from 'framer-motion'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { 
   Code, 
@@ -21,407 +15,254 @@ import {
   Calendar,
   MapPin,
   Mail,
-  Phone,
-  Coins
+  Sparkles,
+  Bot,
+  Shield,
+  Rocket,
+  Target,
+  Heart,
+  Lightbulb,
+  TrendingUp
 } from 'lucide-react'
 
 export default function AboutPage() {
-  const skills = [
-    { name: 'React & Next.js', level: 95, icon: Code },
-    { name: 'AI & Machine Learning', level: 90, icon: Zap },
-    { name: 'TypeScript', level: 90, icon: Code },
-    { name: 'Chatbots & AI Agents', level: 88, icon: Users },
-    { name: 'Node.js & APIs', level: 88, icon: Database },
-    { name: 'Blockchain & Web3', level: 85, icon: Coins },
-    { name: 'UI/UX Design', level: 85, icon: Palette },
-    { name: 'Mobile Development', level: 80, icon: Smartphone },
-    { name: 'E-commerce', level: 92, icon: Globe },
-  ]
-
-  const experience = [
-    {
-      year: '2023-Present',
-      title: 'Senior Full-Stack Developer & AI/Web3 Specialist',
-      company: 'Freelance',
-      description: 'Specializing in modern web applications, AI solutions, and blockchain development. Building chatbots, AI agents, smart contracts, and decentralized applications alongside traditional web development.',
-      achievements: ['13+ freelance projects', 'AI chatbots & agents', 'Blockchain & Web3', '100% client satisfaction']
-    },
-    {
-      year: '2019-2023',
-      title: 'Lead Full-Stack Developer',
-      company: 'Tech Solutions Ltd',
-      description: 'Led a team of 8 developers building enterprise web applications, mobile apps, and Web3 integrations. Implemented modern development practices, CI/CD pipelines, and agile methodologies.',
-      achievements: ['Team leadership', 'Enterprise applications', 'Web3 & blockchain', 'Mobile development']
-    },
-    {
-      year: '2015-2019',
-      title: 'Full-Stack Developer',
-      company: 'Digital Agency',
-      description: 'Developed custom websites, web applications, and e-commerce platforms for various clients. Built scalable solutions handling thousands of daily users.',
-      achievements: ['100+ websites delivered', 'E-commerce expertise', 'CMS development', 'API integrations']
-    },
-    {
-      year: '2012-2015',
-      title: 'Junior Developer',
-      company: 'StartUp Inc',
-      description: 'Started my professional journey building responsive websites and learning modern web technologies. Quickly progressed to handling full project lifecycles.',
-      achievements: ['Responsive design', 'Modern web tech', 'Rapid growth', 'Client management']
-    }
-  ]
-
-  const values = [
-    {
-      icon: Clock,
-      title: 'Fast Delivery',
-      description: 'I understand time is money. That\'s why I guarantee delivery within agreed timelines.'
-    },
-    {
-      icon: Award,
-      title: 'Quality First',
-      description: 'Every project is built with clean, maintainable code and modern best practices.'
-    },
-    {
-      icon: Users,
-      title: 'Client Focus',
-      description: 'Your success is my success. I work closely with clients to exceed expectations.'
-    },
-    {
-      icon: Zap,
-      title: 'Innovation',
-      description: 'I stay up-to-date with the latest technologies to deliver cutting-edge solutions.'
-    }
-  ]
-
   return (
-    <main className="pt-16 min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+    <main className="pt-16 min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 overflow-hidden">
       {/* Hero Section */}
-      <section className="py-12 relative">
+      <section className="relative py-16 lg:py-20">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-10 left-10 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl" />
-          <div className="absolute top-20 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-20 left-10 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute top-40 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
+          <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-500" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.03)_1px,transparent_1px)] bg-[size:50px_50px]" />
         </div>
+
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="grid lg:grid-cols-2 gap-8 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              className="space-y-6"
-            >
-              <div className="space-y-3">
-                <h1 className="text-3xl md:text-4xl font-bold leading-tight">
-                  <span className="text-white">Hi, I'm </span>
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Daniel</span>
-                </h1>
-                <p className="text-slate-400 leading-relaxed">
-                  A passionate full-stack developer and AI specialist with 13+ years of experience creating 
-                  beautiful websites, intelligent AI solutions, blockchain applications, and automated systems that help businesses grow.
-                </p>
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-cyan-500/10 to-purple-500/10 text-cyan-400 border border-cyan-500/20 mb-6 backdrop-blur-sm">
+                <Sparkles className="w-4 h-4 animate-pulse" />
+                <span>About Lumora Pro</span>
               </div>
-              
-              <div className="flex flex-wrap gap-3">
-                <Badge variant="secondary" className="px-3 py-1">
-                  <MapPin className="w-3 h-3 mr-1" />
-                  London, UK
-                </Badge>
-                <Badge variant="secondary" className="px-3 py-1">
-                  <Calendar className="w-3 h-3 mr-1" />
-                  13+ Years Experience
-                </Badge>
-                <Badge variant="secondary" className="px-3 py-1">
-                  <Star className="w-3 h-3 mr-1" />
-                  13+ Freelance Projects
-                </Badge>
+
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+                Hi, I&apos;m <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Daniel</span>
+                <span className="block text-2xl md:text-3xl mt-2 text-slate-300">Full-Stack Developer & Digital Architect</span>
+              </h1>
+
+              <p className="text-lg text-slate-400 mb-8 leading-relaxed">
+                With over 13 years of experience, I&apos;ve helped businesses of all sizes transform their digital presence. 
+                From stunning websites to powerful mobile apps and AI solutions, I bring ideas to life with clean code and creative design.
+              </p>
+
+              <div className="flex flex-wrap gap-3 mb-8">
+                {[
+                  { icon: MapPin, text: 'London, UK' },
+                  { icon: Calendar, text: '13+ Years' },
+                  { icon: Star, text: '50+ Projects' },
+                ].map((item) => (
+                  <div key={item.text} className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700/50">
+                    <item.icon className="w-4 h-4 text-cyan-400" />
+                    <span className="text-slate-300 text-sm font-medium">{item.text}</span>
+                  </div>
+                ))}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" asChild className="group">
-                  <Link href="/quote">
-                    Start Your Project
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" asChild>
-                  <Link href="/contact">Get In Touch</Link>
-                </Button>
+                <Link 
+                  href="/quote"
+                  className="group inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-105"
+                >
+                  Start Your Project
+                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link 
+                  href="/contact"
+                  className="group inline-flex items-center justify-center px-8 py-4 bg-slate-800/80 hover:bg-slate-700 text-white font-semibold rounded-xl transition-all duration-300 border border-slate-700 hover:border-cyan-500/50"
+                >
+                  Get In Touch
+                </Link>
               </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative"
-            >
-              <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent shadow-2xl">
-                <CardHeader>
-                  <CardTitle className="text-2xl">Quick Stats</CardTitle>
-                  <CardDescription>What I've accomplished so far</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-secondary/20 rounded-lg">
-                      <div className="text-3xl font-bold text-primary">13+</div>
-                      <div className="text-sm text-muted-foreground">Freelance Projects</div>
+            {/* Stats Card */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 rounded-3xl blur-3xl" />
+              <div className="relative bg-slate-800/80 border border-slate-700/50 rounded-2xl p-8 backdrop-blur-sm">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-cyan-400" />
+                  Track Record
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { value: '50+', label: 'Projects Delivered', color: 'from-cyan-500 to-blue-600' },
+                    { value: '100%', label: 'Client Satisfaction', color: 'from-green-500 to-emerald-600' },
+                    { value: '13+', label: 'Years Experience', color: 'from-purple-500 to-pink-600' },
+                    { value: '24/7', label: 'Support Available', color: 'from-orange-500 to-red-600' },
+                  ].map((stat) => (
+                    <div key={stat.label} className="text-center p-4 bg-slate-700/30 rounded-xl border border-slate-600/30">
+                      <div className={`text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${stat.color} mb-1`}>{stat.value}</div>
+                      <div className="text-xs text-slate-400">{stat.label}</div>
                     </div>
-                    <div className="text-center p-4 bg-secondary/20 rounded-lg">
-                      <div className="text-3xl font-bold text-primary">100%</div>
-                      <div className="text-sm text-muted-foreground">Client Satisfaction</div>
-                    </div>
-                    <div className="text-center p-4 bg-secondary/20 rounded-lg">
-                      <div className="text-3xl font-bold text-primary">13+</div>
-                      <div className="text-sm text-muted-foreground">Years Experience</div>
-                    </div>
-                    <div className="text-center p-4 bg-secondary/20 rounded-lg">
-                      <div className="text-3xl font-bold text-primary">4.9★</div>
-                      <div className="text-sm text-muted-foreground">Average Rating</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* What I Do Section */}
+      <section className="py-16 border-t border-slate-800/50 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/5 to-transparent pointer-events-none" />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="text-center mb-12">
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 mb-4">
+              What I Do
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Expertise That Delivers Results</h2>
+            <p className="text-slate-400 max-w-2xl mx-auto">
+              I specialize in creating digital solutions that help businesses grow and succeed online.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { icon: Globe, title: 'Web Development', desc: 'Beautiful, responsive websites and web applications built with modern technologies.', color: 'from-cyan-500 to-blue-600' },
+              { icon: Smartphone, title: 'Mobile Apps', desc: 'Native and cross-platform mobile applications for iOS and Android.', color: 'from-purple-500 to-pink-600' },
+              { icon: Bot, title: 'AI Solutions', desc: 'Intelligent chatbots, automation, and AI-powered features for your business.', color: 'from-green-500 to-emerald-600' },
+              { icon: Database, title: 'Backend & APIs', desc: 'Robust server-side solutions, databases, and API integrations.', color: 'from-orange-500 to-red-600' },
+              { icon: Palette, title: 'UI/UX Design', desc: 'User-centered design that looks great and converts visitors into customers.', color: 'from-pink-500 to-rose-600' },
+              { icon: Zap, title: 'E-Commerce', desc: 'Full-featured online stores with payment processing and inventory management.', color: 'from-yellow-500 to-orange-600' },
+            ].map((item) => (
+              <div key={item.title} className="group bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 hover:border-cyan-500/50 transition-all duration-500 hover:shadow-xl hover:shadow-cyan-500/10">
+                <div className={`w-14 h-14 bg-gradient-to-br ${item.color} rounded-xl flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                  <item.icon className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">{item.title}</h3>
+                <p className="text-slate-400 text-sm">{item.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* My Story Section */}
-      <section className="py-12">
+      <section className="py-16 border-t border-slate-800/50 relative">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="text-center space-y-3 mb-10"
-          >
-            <h2 className="text-2xl md:text-3xl font-bold text-white">
-              My <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Story</span>
+          <div className="text-center mb-10">
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20 mb-4">
+              My Journey
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              The Story Behind Lumora Pro
             </h2>
-            <p className="text-slate-400">
-              From curious beginner to experienced professional
-            </p>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            viewport={{ once: true }}
-            className="prose prose-lg max-w-none text-muted-foreground space-y-6"
-          >
-            <p>
-              My journey into web development started over 13 years ago when I built my first website 
+          <div className="space-y-6 text-slate-400 leading-relaxed">
+            <p className="text-lg">
+              My journey into web development started over <span className="text-cyan-400 font-semibold">13 years ago</span> when I built my first website 
               using HTML and CSS. What began as curiosity quickly turned into passion as I 
               discovered the power of creating digital experiences that solve real problems.
             </p>
             
             <p>
-              Over the years, I've evolved from building simple static websites to creating 
-              complex web applications, intelligent AI solutions, and blockchain/Web3 applications using modern technologies like React, Next.js, 
-              TypeScript, cutting-edge AI frameworks, and smart contract development. I've had the privilege of working with startups, 
-              established businesses, and everything in between.
+              Over the years, I&apos;ve evolved from building simple static websites to creating 
+              complex web applications, intelligent AI solutions, and mobile apps using modern technologies like React, Next.js, 
+              TypeScript, and cutting-edge AI frameworks.
             </p>
             
             <p>
-              What drives me is the satisfaction of turning ideas into reality. Whether it's a 
+              What drives me is the satisfaction of turning ideas into reality. Whether it&apos;s a 
               simple landing page that converts visitors into customers, a complex e-commerce 
-              platform that handles thousands of transactions, an AI chatbot that provides 24/7 
-              customer support, or a blockchain solution for decentralized applications, I approach every project with the same level of dedication and attention to detail.
+              platform, or an AI chatbot that provides 24/7 support, I approach every project with the same level of dedication.
             </p>
-            
-            <p>
-              Today, I focus on delivering high-quality web solutions AND intelligent AI systems 
-              with transparent pricing and guaranteed delivery times. My goal is to make both 
-              professional web development and cutting-edge AI technology accessible to businesses of all sizes.
-            </p>
-          </motion.div>
-        </div>
-      </section>
 
-      {/* Skills Section */}
-      <section className="py-12 bg-slate-800/30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="text-center space-y-3 mb-10"
-          >
-            <h2 className="text-2xl md:text-3xl font-bold text-white">
-              My <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Skills</span>
-            </h2>
-            <p className="text-slate-400">
-              Technologies I use to bring your ideas to life
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            {skills.map((skill, index) => (
-              <motion.div
-                key={skill.name}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <Card className="h-full">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                          <skill.icon className="w-5 h-5 text-primary" />
-                        </div>
-                        <h3 className="text-lg font-semibold">{skill.name}</h3>
-                      </div>
-                      <span className="text-sm font-medium text-primary">{skill.level}%</span>
-                    </div>
-                    <div className="w-full bg-secondary rounded-full h-2">
-                      <motion.div
-                        className="bg-gradient-to-r from-primary to-primary/80 h-2 rounded-full"
-                        initial={{ width: 0 }}
-                        whileInView={{ width: `${skill.level}%` }}
-                        transition={{ duration: 1, delay: index * 0.1 }}
-                        viewport={{ once: true }}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Experience Section */}
-      <section className="py-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="text-center space-y-3 mb-10"
-          >
-            <h2 className="text-2xl md:text-3xl font-bold text-white">
-              My <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Experience</span>
-            </h2>
-            <p className="text-slate-400">
-              A journey of continuous learning and growth
-            </p>
-          </motion.div>
-
-          <div className="space-y-6">
-            {experience.map((exp, index) => (
-              <motion.div
-                key={exp.year}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <Card className="border-l-4 border-l-primary">
-                  <CardHeader>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div>
-                        <CardTitle className="text-xl">{exp.title}</CardTitle>
-                        <CardDescription className="text-base font-medium text-primary">
-                          {exp.company}
-                        </CardDescription>
-                      </div>
-                      <Badge variant="outline" className="w-fit">
-                        {exp.year}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground mb-4">{exp.description}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {exp.achievements.map((achievement, idx) => (
-                        <div key={idx} className="flex items-center space-x-2">
-                          <CheckCircle className="w-4 h-4 text-primary" />
-                          <span className="text-sm text-muted-foreground">{achievement}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-8">
+              {[
+                { value: '2012', label: 'Started Coding' },
+                { value: '50+', label: 'Projects Completed' },
+                { value: '100%', label: 'Client Satisfaction' },
+                { value: '24/7', label: 'Support' },
+              ].map((stat) => (
+                <div key={stat.label} className="text-center p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                  <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">{stat.value}</div>
+                  <div className="text-xs text-slate-500">{stat.label}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       {/* Values Section */}
-      <section className="py-12 bg-slate-800/30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="text-center space-y-3 mb-10"
-          >
-            <h2 className="text-2xl md:text-3xl font-bold text-white">
-              My <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Values</span>
-            </h2>
-            <p className="text-slate-400">
-              What drives me in every project
+      <section className="py-16 border-t border-slate-800/50 relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="text-center mb-12">
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20 mb-4">
+              My Values
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">What I Stand For</h2>
+            <p className="text-slate-400 max-w-xl mx-auto">
+              The principles that guide every project I take on
             </p>
-          </motion.div>
+          </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {values.map((value, index) => (
-              <motion.div
-                key={value.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="text-center space-y-4"
-              >
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto">
-                  <value.icon className="w-8 h-8 text-primary" />
+            {[
+              { icon: Clock, title: 'Fast Delivery', desc: 'Time is money. I deliver on schedule, every time.', color: 'from-cyan-500 to-blue-600' },
+              { icon: Award, title: 'Quality First', desc: 'Clean, maintainable code built to last.', color: 'from-purple-500 to-pink-600' },
+              { icon: Heart, title: 'Client Focus', desc: 'Your success is my success. Period.', color: 'from-red-500 to-pink-600' },
+              { icon: Lightbulb, title: 'Innovation', desc: 'Always learning, always improving.', color: 'from-yellow-500 to-orange-600' },
+            ].map((value) => (
+              <div key={value.title} className="group text-center p-6 bg-slate-800/30 rounded-2xl border border-slate-700/50 hover:border-cyan-500/30 transition-all duration-500">
+                <div className={`w-16 h-16 bg-gradient-to-br ${value.color} rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                  <value.icon className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground">{value.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{value.description}</p>
-              </motion.div>
+                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">{value.title}</h3>
+                <p className="text-slate-400 text-sm">{value.desc}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-12 bg-gradient-to-br from-cyan-500/10 to-purple-500/10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="space-y-6"
-          >
-            <h2 className="text-2xl md:text-3xl font-bold text-white">
-              Ready to Work <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Together</span>?
-            </h2>
-            <p className="text-slate-400">
-              Let's bring your ideas to life with professional web development that delivers results.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" asChild className="group">
-                <Link href="/quote">
-                  Start Your Project
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link href="/contact">
-                  <Mail className="mr-2 h-4 w-4" />
-                  Get In Touch
-                </Link>
-              </Button>
-            </div>
-          </motion.div>
+      <section className="py-20 border-t border-slate-800/50 relative">
+        <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 via-purple-500/5 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+        </div>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-cyan-500/10 to-purple-500/10 text-cyan-400 border border-cyan-500/20 mb-6">
+            <Rocket className="w-4 h-4" />
+            <span>Let&apos;s Work Together</span>
+          </div>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Ready to Start Your Project?
+          </h2>
+          <p className="text-lg text-slate-400 mb-8 max-w-2xl mx-auto">
+            Let&apos;s bring your ideas to life. Get a free quote today and see how we can transform your digital presence.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link 
+              href="/quote"
+              className="group inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-105"
+            >
+              Get Free Quote
+              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link 
+              href="/contact"
+              className="group inline-flex items-center justify-center px-8 py-4 bg-slate-800/80 hover:bg-slate-700 text-white font-semibold rounded-xl transition-all duration-300 border border-slate-700 hover:border-cyan-500/50"
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              Get In Touch
+            </Link>
+          </div>
         </div>
       </section>
     </main>

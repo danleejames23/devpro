@@ -1,5 +1,5 @@
 import { services } from '@/data/services'
-import { Check, ArrowRight, Clock, Shield, Bot, Code, Smartphone, Palette, Server, Brain, Target, Globe, Paintbrush, Zap, Sparkles, Star, Users } from 'lucide-react'
+import { Check, ArrowRight, Clock, Shield, Bot, Code, Smartphone, Palette, Server, Brain, Target, Globe, Paintbrush, Zap, Sparkles, Star, Users, MessageSquare, FileText, Rocket, ShoppingCart } from 'lucide-react'
 import Link from 'next/link'
 
 export default function ServicesPage() {
@@ -60,27 +60,39 @@ export default function ServicesPage() {
       </section>
 
       {/* Service Categories - Enhanced Cards */}
-      <section className="py-10 border-t border-slate-800/50 relative">
+      <section className="py-12 border-t border-slate-800/50 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500/5 to-transparent pointer-events-none" />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="text-center mb-10">
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20 mb-4">
+              What We Build
+            </span>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">Our Core Expertise</h2>
+            <p className="text-slate-400 max-w-xl mx-auto">Specialized solutions across all digital platforms</p>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { label: 'Websites', icon: Globe, count: 'From £149', color: 'from-cyan-500 to-blue-600' },
-              { label: 'Web Apps', icon: Code, count: 'From £999', color: 'from-purple-500 to-pink-600' },
-              { label: 'E-Commerce', icon: Zap, count: 'From £549', color: 'from-orange-500 to-red-600' },
-              { label: 'AI Solutions', icon: Bot, count: 'From £299', color: 'from-green-500 to-emerald-600' },
+              { label: 'Websites', icon: Globe, price: 'From £149', desc: 'Landing pages to full sites', color: 'from-cyan-500 to-blue-600' },
+              { label: 'Web Apps', icon: Code, price: 'From £999', desc: 'Custom web applications', color: 'from-purple-500 to-pink-600' },
+              { label: 'E-Commerce', icon: ShoppingCart, price: 'From £549', desc: 'Online stores & payments', color: 'from-orange-500 to-red-600' },
+              { label: 'AI Solutions', icon: Bot, price: 'From £299', desc: 'Chatbots & automation', color: 'from-green-500 to-emerald-600' },
             ].map((item) => (
-              <div
+              <Link
                 key={item.label}
-                className="group relative bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 text-center hover:border-cyan-500/50 transition-all duration-500 hover:scale-105 hover:shadow-xl hover:shadow-cyan-500/10"
+                href="/quote"
+                className="group relative bg-gradient-to-b from-slate-800/80 to-slate-900/80 border border-slate-700/50 rounded-2xl p-6 text-center hover:border-cyan-500/50 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-cyan-500/10"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className={`relative w-14 h-14 bg-gradient-to-br ${item.color} rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                  <item.icon className="w-7 h-7 text-white" />
+                <div className={`relative w-16 h-16 bg-gradient-to-br ${item.color} rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-cyan-500/20 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
+                  <item.icon className="w-8 h-8 text-white" />
                 </div>
-                <div className="relative text-white font-semibold text-lg mb-1">{item.label}</div>
-                <div className="relative text-cyan-400 font-medium">{item.count}</div>
-              </div>
+                <div className="relative text-white font-bold text-xl mb-1 group-hover:text-cyan-400 transition-colors">{item.label}</div>
+                <div className="relative text-slate-400 text-sm mb-3">{item.desc}</div>
+                <div className="relative inline-flex items-center gap-1 px-4 py-2 bg-slate-700/50 rounded-full">
+                  <span className="text-cyan-400 font-semibold">{item.price}</span>
+                  <ArrowRight className="w-3 h-3 text-cyan-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -244,37 +256,56 @@ export default function ServicesPage() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-12 border-t border-slate-800/50 relative">
+      <section className="py-16 border-t border-slate-800/50 relative">
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 via-transparent to-purple-500/5 pointer-events-none" />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="text-center mb-8">
+          <div className="text-center mb-12">
             <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20 mb-4">
-              Process
+              Our Process
             </span>
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-              How It Works
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              How We Bring Your Vision to Life
             </h2>
-            <p className="text-slate-400 max-w-xl mx-auto">
-              Simple, transparent process from start to finish
+            <p className="text-slate-400 max-w-2xl mx-auto">
+              A streamlined, transparent process designed to deliver exceptional results every time
             </p>
           </div>
 
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-4 gap-8">
             {[
-              { step: '1', title: 'Discuss', description: 'Share your project requirements and goals', color: 'from-cyan-500 to-blue-600' },
-              { step: '2', title: 'Quote', description: 'Receive a detailed quote with timeline', color: 'from-blue-500 to-purple-600' },
-              { step: '3', title: 'Build', description: 'Development with regular updates', color: 'from-purple-500 to-pink-600' },
-              { step: '4', title: 'Launch', description: 'Deploy and ongoing support', color: 'from-pink-500 to-orange-600' }
+              { step: '01', icon: MessageSquare, title: 'Discuss', description: 'Share your vision, goals, and requirements. We listen and understand your needs.', color: 'from-cyan-500 to-blue-600' },
+              { step: '02', icon: FileText, title: 'Quote', description: 'Receive a detailed proposal with fixed pricing, timeline, and deliverables.', color: 'from-purple-500 to-pink-600' },
+              { step: '03', icon: Code, title: 'Build', description: 'We develop your project with regular updates. Track progress in your client portal.', color: 'from-orange-500 to-red-600' },
+              { step: '04', icon: Rocket, title: 'Launch', description: 'Go live with confidence. We provide ongoing support and maintenance.', color: 'from-green-500 to-emerald-600' }
             ].map((item, index) => (
               <div key={item.step} className="group text-center relative">
                 {index < 3 && (
-                  <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-slate-700 to-transparent" />
+                  <div className="hidden md:block absolute top-10 left-[55%] w-[90%] h-[2px] bg-gradient-to-r from-slate-600 via-slate-700 to-transparent" />
                 )}
-                <div className={`w-16 h-16 bg-gradient-to-br ${item.color} rounded-2xl flex items-center justify-center mx-auto mb-5 text-white text-xl font-bold shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                  {item.step}
+                <div className="relative mb-6">
+                  <div className={`w-20 h-20 bg-gradient-to-br ${item.color} rounded-2xl flex items-center justify-center mx-auto shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
+                    <item.icon className="w-9 h-9 text-white" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-slate-800 border-2 border-slate-600 rounded-full flex items-center justify-center text-xs font-bold text-cyan-400 group-hover:border-cyan-500 transition-colors">
+                    {item.step}
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">{item.title}</h3>
-                <p className="text-slate-400">{item.description}</p>
+                <h3 className="text-xl font-bold text-white mb-3 group-hover:text-cyan-400 transition-colors">{item.title}</h3>
+                <p className="text-slate-400 text-sm leading-relaxed">{item.description}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Process Stats */}
+          <div className="mt-16 grid grid-cols-3 gap-6 max-w-3xl mx-auto">
+            {[
+              { value: '50+', label: 'Projects Delivered' },
+              { value: '1-2 Weeks', label: 'Average Delivery' },
+              { value: '100%', label: 'Client Satisfaction' },
+            ].map((stat) => (
+              <div key={stat.label} className="text-center p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                <div className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-1">{stat.value}</div>
+                <div className="text-xs text-slate-400">{stat.label}</div>
               </div>
             ))}
           </div>

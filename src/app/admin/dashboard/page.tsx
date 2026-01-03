@@ -954,33 +954,59 @@ export default function AdvancedAdminDashboard() {
   const sendChatMessage = async () => {
     if (!newMessage.trim() || !selectedChatCustomer) return
     
+    const messageToSend = newMessage.trim()
+    const customerId = selectedChatCustomer
+    
     try {
       showLoading('Sending', 'Sending message...')
       const response = await fetch('/api/admin/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customer_id: selectedChatCustomer,
+          customer_id: customerId,
           subject: 'Chat Message',
-          message: newMessage,
+          message: messageToSend,
           is_from_admin: true
         })
       })
       
-      if (response.ok) {
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        // Immediately add the new message to chat display
+        const newMsg: AdminMessage = {
+          id: data.message?.id || `temp-${Date.now()}`,
+          customer_id: customerId,
+          customer_name: chatMessages[0]?.customer_name || 'Customer',
+          subject: 'Chat Message',
+          message: messageToSend,
+          is_from_admin: true,
+          created_at: new Date().toISOString(),
+          is_read: true,
+          priority: 'medium' as const,
+          tags: []
+        }
+        
+        setChatMessages(prev => [...prev, newMsg])
         setNewMessage('')
-        await loadMessages()
-        // Refresh chat messages after loading
-        setTimeout(() => {
-          if (selectedChatCustomer && groupedMessages[selectedChatCustomer]) {
-            setChatMessages(groupedMessages[selectedChatCustomer])
-          }
-        }, 1000)
+        
+        // Also update grouped messages
+        setGroupedMessages(prev => ({
+          ...prev,
+          [customerId]: [...(prev[customerId] || []), newMsg]
+        }))
+        
+        hideNotification()
         showSuccess('Success', 'Message sent successfully!')
+        
+        // Refresh from server in background
+        loadMessages()
       } else {
-        showError('Error', 'Failed to send message')
+        hideNotification()
+        showError('Error', data.error || 'Failed to send message')
       }
     } catch (error) {
+      hideNotification()
       showError('Error', 'Failed to send message')
     }
   }

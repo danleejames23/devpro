@@ -87,7 +87,7 @@ import {
   SkipBack, SkipForward, Rewind, FastForward, Repeat, Repeat1, Shuffle, Volume, Volume1, VolumeOff,
   Play, Pause, Power, PowerOff, Sun, Moon, Cloud, CloudRain,
   CloudSnow, CloudLightning, Umbrella, Wind, Droplets, EyeOff, Glasses, Lightbulb, Flashlight,
-  Home, Building2, Linkedin, Twitter, ArrowRight, Code as CodeIcon
+  Home, Building2, Linkedin, Twitter, ArrowRight, Code as CodeIcon, Check
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
